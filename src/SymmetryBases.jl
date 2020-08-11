@@ -15,16 +15,18 @@ export compatibility_bases, nontopological_bases, split_fragiletrivial_bases,
        has_posint_expansion, get_solution_topology, fillings,
        TopologyKind, trivial, nontrivial, fragile
 
-const PyNormaliz = pyimport("PyNormaliz") # import the PyNormaliz library
+# import the PyNormaliz library
+const PyNormaliz = PyNULL()
+function __init__() # https://github.com/JuliaPy/PyCall.jl#using-pycall-from-julia-modules
+    copy!(PyNormaliz, pyimport("PyNormaliz"))
+end
 
 # -----------------------------------------------------------------------------------------
 
 """
-    $(SIGNATURES)
-
-with fields: 
-
-    $(FIELDS)
+    $(TYPEDEF)
+    
+with fields: $(TYPEDFIELDS)
 """
 struct SymBasis <: AbstractVector{Vector{Int}}
     symvecs::Vector{Vector{Int}}
@@ -191,8 +193,7 @@ for f in (:compatibility_bases, :nontopological_bases)
 end
 
 """
-    $(SIGNATURES)
-                                                            --> Vector{Int}, Vector{Int}
+    $(TYPEDSIGNATURES)
 
 Compute the trivial and fragile indices of a _nontopological_ `SymBasis`, `sb_nontopo`, by 
 determining whether or not each has a positive-coefficient expansion in EBRs. The EBRs
@@ -239,7 +240,7 @@ end
 # ---------------------------------------------------------------------------------------- #
 
 """
-    $(SIGNATURES)
+    $(TYPEDSIGNATURES)
 
 Check whether a positive-integer coefficient expansion exists for `n` in the basis of the 
 columns of `M`, i.e. whether there exists ``cᵢ∈ℕ`` (``=0,1,2,...``)  such that ``Mc=n``.
