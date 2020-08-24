@@ -9,7 +9,7 @@ using Nemo # for `calc_topology`
 using DocStringExtensions
 
 import Base: OneTo, show, size, getindex, firstindex, lastindex, IndexStyle, length
-import Crystalline: matrix
+import Crystalline: matrix, vecs, num, irreplabels, klabels, isspinful, istimeinvar
 
 export SymBasis
 export compatibility_bases, nontopological_bases, split_fragiletrivial_bases,
