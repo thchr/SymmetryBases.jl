@@ -130,9 +130,11 @@ Several keyword arguments `kwargs` are possible:
     - `spinful::Bool`: Use single- (`false`, default) or double-valued (`true`) irreps.
     - `timereversal::Bool`: Assume presence (`true`, default) or absence (`false`) of
     time-reversal symmetry.
+    - `verbose::Bool`: whether to print progress info during the Normaliz computation
+    (`false`, default).
 """
 function compatibility_bases(F::SmithNormalForm.Smith, BRS::BandRepSet; 
-                             algorithm::String="DualMode")
+                             algorithm::String="DualMode", verbose::Bool=false)
     # To restrict nᵢ to only positive integers, i.e. ℕ, the values of zᵢ must be such that 
     # ∑ⱼ Sᵢⱼzⱼ ≥ 0. This defines a set of inequalities, which in turn defines a polyhedral
     # integer cone. This is where (Py)Normaliz comes in.
@@ -140,6 +142,7 @@ function compatibility_bases(F::SmithNormalForm.Smith, BRS::BandRepSet;
     S = @view F.S[:,OneTo(dᵇˢ)]           # All the nontrivial conditions on zⱼ
 
     C = PyNormaliz.Cone(inequalities = S) # Construct cone consistent with Sᵢⱼzⱼ ≥ 0
+    verbose && C.setVerbose(true)         # Whether to print progress info
     C.Compute("HilbertBasis", algorithm)  # Compute¹ the Hilbert basis
     zsᴴ  = transpose(C.HilbertBasis())    # Columns are Hilbert basis vectors in 𝐳-space
 
@@ -161,7 +164,7 @@ If the method is called with `sgnum::Integer`, the associated `BandRepSet` is al
 For possible keyword arguments `kwargs`, see `compatibility_bases(..)`.
 """
 function nontopological_bases(F::SmithNormalForm.Smith, BRS::BandRepSet;
-                              algorithm::String="DualMode")
+                              algorithm::String="DualMode", verbose::Bool=false)
     # To find _all_ nontopological bases we build a cone subject to the inequalities 
     # (SΛy)ᵢ ≥ 0 with yᵢ ∈ ℤ, which automatically excludes topological cases (since they
     # correspond to rational yᵢ)
@@ -171,6 +174,7 @@ function nontopological_bases(F::SmithNormalForm.Smith, BRS::BandRepSet;
     SΛ = S .* Λ' # Equivalent to S*diagm(dᵇˢ, dᵇˢ, Λ); all the nontrivial conditions on yᵢ
     
     C_nontopo = PyNormaliz.Cone(inequalities = SΛ)    # Cone consistent with SᵢⱼΛⱼyⱼ ≥ 0
+    verbose && C_nontopo.setVerbose(true)             # Whether to print progress info
     C_nontopo.Compute("HilbertBasis", algorithm)      # Compute¹ the Hilbert basis
     ysᴴ_nontopo = transpose(C_nontopo.HilbertBasis()) # Hilbert basis vectors in 𝐲-space
 
@@ -411,9 +415,11 @@ end
 # the documentation stating that "DualMode" usually is better for cones defined by
 # inequalities. Through tests, I've found that there is usually a speedup of order 2-10,
 # if the "DualMode" algorithm is picked instead; occassionally, up to ×100s. The speedup 
-# seems to be especially large for the systems that (very) hard to solve (e.g. 131). 
-# To force "DualMode", we use the method C.Compute(<quantity-to-compute>, <algorithm>), 
-# which then calculates <quantity-to-compute> and stores it in C (here, "HilbertBasis");
-# it can then subsequently be retrieved from C with C.HilbertBasis().
-
+# seems to be especially large for the systems that are (very) hard to solve (e.g. 131). 
+# To force "DualMode", we use the method `C.Compute(<quantity-to-compute>, <algorithm>)`, 
+# which then calculates `<quantity-to-compute>` and stores it in `C` (here, "HilbertBasis");
+# it can then subsequently be retrieved from `C` with `C.HilbertBasis()`.
+# Some situations remain effectively out of reach still: for bosons without time-reversal
+# symmetry, there are a handful of SGs for which nontopological_bases(..) does not seem to
+# terminate in a reasonable amount of time (15h+ tested).
 end # module
