@@ -197,13 +197,17 @@ end
     $(TYPEDSIGNATURES)
 
 Compute the trivial and fragile indices of a _nontopological_ `SymBasis`, `sb_nontopo`, by 
-determining whether or not each has a positive-coefficient expansion in EBRs. The EBRs
-are given as a matrix, `B` which must be `B = matrix(BRS, true)` where `BRS::BandRepSet`.
+determining whether or not each has a positive-coefficient expansion in elementary band
+representations (EBRs).
+The EBRs are given either through a `BRS::BandRepSet` or through its matrix representation
+`B = matrix(BRS, includedim)`.
 
-Both `sb_nontopo` and `B` must reference the same output space: in other words, if the
-latter includes a filling element, so must the former.
+Note that both `sb_nontopo` and `B` must reference the same output space: in other words, if
+the `sb_nontopo` includes a filling element, `includedim` must set to `true` for `B`; 
+otherwise `false`.
 
-Returns indices,  trivial_idxs` and `fragile_idxs`, into `sb_nontopo`.
+Returns trivial indices, `trivial_idxs`, and fragile indices, `fragile_idxs`, into the basis
+vectors in `sb_nontopo`.
 """
 function split_fragiletrivial_bases(sb_nontopo::SymBasis, B::AbstractMatrix)
     if sb_nontopo.compatbasis
@@ -233,6 +237,15 @@ function split_fragiletrivial_bases(sb_nontopo::SymBasis, B::AbstractMatrix)
     end
 
     return trivial_idxs, fragile_idxs
+end
+function split_fragiletrivial_bases(sb_nontopo::SymBasis, BRS::BandRepSet)
+    Nirr, Nrows = length(irreplabels(sb_nontopo)), length(first(sb_nontopo))
+    includedim = (Nrows == Nirr+1) ? true : false
+
+    @assert (includedim || Nrows == Nirr)
+    @assert Nirr == length(first(BRS)) "Non-equal number of irreps in SymBasis and BandRepSet"    
+
+    split_fragiletrivial_bases(sb_nontopo, matrix(BRS, includedim))
 end
 
 
