@@ -16,10 +16,19 @@ export compatibility_bases, nontopological_bases, split_fragiletrivial_bases,
        has_posint_expansion, calc_detailed_topology, calc_topology, fillings,
        TopologyKind, trivial, nontrivial, fragile
 
-# import the PyNormaliz library
+
 const PyNormaliz = PyNULL()
-function __init__() # https://github.com/JuliaPy/PyCall.jl#using-pycall-from-julia-modules
+function __init__() 
+    # import the PyNormaliz library
+    # https://github.com/JuliaPy/PyCall.jl#using-pycall-from-julia-modules
     copy!(PyNormaliz, pyimport("PyNormaliz"))
+
+    # try to stop Nemo spamming its welcome message on package load, following hint from 
+    # https://github.com/Nemocas/Nemo.jl/issues/817#issuecomment-613991144, unfortunately
+    # this doesn't really seem to work due to the variable not really being available at the
+    # right time (... precompilation?), see discussion in 
+    # https://discourse.julialang.org/t/redirecting-stdout-to-avoid-banners-while-import-ing/37633/11
+    ENV["NEMO_PRINT_BANNER"] = "false"
 end
 
 # -----------------------------------------------------------------------------------------
@@ -115,7 +124,7 @@ end
 
 """
     compatibility_bases(F::SmithNormalForm.Smith, BRS::BandRepSet; algorithm)
-    compatibility_bases(sgnum::Integer; kwargs...)
+    compatibility_bases(sgnum::Integer, D::Integer=3; kwargs...)
 
 Computes the Hilbert bases associated with a Smith normal form `F` of the EBR matrix or from
 a space group number `sgnum`, which respects all compatibility relations. The resulting 
@@ -125,13 +134,13 @@ If the method is called with `sgnum::Integer`, the associated `BandRepSet` is al
 
 Several keyword arguments `kwargs` are possible:
 
-    - `algorithm::String`: controls the algorithm used by Normaliz to compute the Hilbert
-    basis. Choices are `"DualMode"` (default) and `"PrimalMode"`
-    - `spinful::Bool`: Use single- (`false`, default) or double-valued (`true`) irreps.
-    - `timereversal::Bool`: Assume presence (`true`, default) or absence (`false`) of
-    time-reversal symmetry.
-    - `verbose::Bool`: whether to print progress info during the Normaliz computation
-    (`false`, default).
+- `algorithm::String`: controls the algorithm used by Normaliz to compute the Hilbert
+basis. Choices are `"DualMode"` (default) and `"PrimalMode"`
+- `spinful::Bool`: Use single- (`false`, default) or double-valued (`true`) irreps.
+- `timereversal::Bool`: Assume presence (`true`, default) or absence (`false`) of
+time-reversal symmetry.
+- `verbose::Bool`: whether to print progress info during the Normaliz computation
+(`false`, default).
 """
 function compatibility_bases(F::SmithNormalForm.Smith, BRS::BandRepSet; 
                              algorithm::String="DualMode", verbose::Bool=false)
@@ -183,12 +192,13 @@ function nontopological_bases(F::SmithNormalForm.Smith, BRS::BandRepSet;
     return SymBasis(nsᴴ_nontopo, BRS, false), ysᴴ_nontopo # Bases of nontopological states
 end
 
-# Convenience accessors from a space group number alone
+# Convenience accessors from a space group number and dimensionality alone
 for f in (:compatibility_bases, :nontopological_bases)
     @eval begin
-        function $f(sgnum::Integer; algorithm::String="DualMode", spinful::Bool=false,
-                                    timereversal::Bool=true)
-            BRS = bandreps(sgnum; allpaths=false, spinful=spinful, timereversal=timereversal)
+        function $f(sgnum::Integer, D::Integer=3; 
+                    algorithm::String="DualMode", spinful::Bool=false, 
+                    timereversal::Bool=true)
+            BRS = bandreps(sgnum, D; allpaths=false, spinful=spinful, timereversal=timereversal)
             B   = matrix(BRS, true)    # Matrix with columns of EBRs.
             F   = Crystalline.smith(B) # Smith normal decomposition of B
 
