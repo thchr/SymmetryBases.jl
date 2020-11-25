@@ -197,8 +197,8 @@ for f in (:compatibility_bases, :nontopological_bases)
     @eval begin
         function $f(sgnum::Integer, D::Integer=3; 
                     algorithm::String="DualMode", spinful::Bool=false, 
-                    timereversal::Bool=true)
-            BRS = bandreps(sgnum, D; allpaths=false, spinful=spinful, timereversal=timereversal)
+                    timereversal::Bool=false, allpaths::Bool=true)
+            BRS = bandreps(sgnum, D; allpaths=allpaths, spinful=spinful, timereversal=timereversal)
             B   = matrix(BRS, true)    # Matrix with columns of EBRs.
             F   = Crystalline.smith(B) # Smith normal decomposition of B
 
