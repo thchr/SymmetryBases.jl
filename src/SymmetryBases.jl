@@ -197,7 +197,7 @@ for f in (:compatibility_bases, :nontopological_bases)
     @eval begin
         function $f(sgnum::Integer, D::Integer=3; 
                     algorithm::String="DualMode", spinful::Bool=false, 
-                    timereversal::Bool=false, allpaths::Bool=true)
+                    timereversal::Bool=false, allpaths::Bool=false)
             BRS = bandreps(sgnum, D; allpaths=allpaths, spinful=spinful, timereversal=timereversal)
             B   = matrix(BRS, true)    # Matrix with columns of EBRs.
             F   = Crystalline.smith(B) # Smith normal decomposition of B
@@ -405,7 +405,7 @@ function calc_topology(n::AbstractVector{<:Integer}, Bℤ::fmpz_mat)
 end
 
 function calc_topology(n::AbstractVector{<:Integer}, B::Matrix{<:Integer})
-    length(n) == size(B, 2) || throw(DimensionMismatch())
+    length(n) == size(B, 1) || throw(DimensionMismatch("sizes of n and B are inconsistent"))
     Bℤ = MatrixSpace(ZZ, size(B)...)(B)
 
     return calc_topology(n, Bℤ)
