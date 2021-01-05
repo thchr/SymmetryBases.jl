@@ -1,7 +1,7 @@
 name = "SymmetryBases"
 uuid = "cb68ded9-7e8c-45d3-bc66-19b5867c0467"
 authors = ["Thomas Christensen <tchr@mit.edu>"]
-version = "0.1.0"
+version = "0.2.0"
 
 [deps]
 Crystalline = "ae5e2be0-a263-11e9-351e-f94dad1eb351"
@@ -15,6 +15,8 @@ SmithNormalForm = "ba71f38f-f508-439b-ac77-437f86a20aa1"
 
 [compat]
 julia = "1.4"
+Crystalline = "^0.2"
+PrettyTables = "^0.10"
 
 [extras]
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
