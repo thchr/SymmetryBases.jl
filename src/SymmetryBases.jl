@@ -42,7 +42,7 @@ struct SymBasis <: AbstractVector{Vector{Int}}
     symvecs::Vector{Vector{Int}}
     irlabs::Vector{String}
     klabs::Vector{String}
-    kvs::Vector{KVec}
+    kvs::Vector{<:KVec} # TODO: make parameteric
     kv2ir_idxs::Vector{UnitRange{Int}} # pick k-point; find assoc. ir indices
     sgnum::Int
     spinful::Bool
