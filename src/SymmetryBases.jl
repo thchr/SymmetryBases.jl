@@ -1,7 +1,7 @@
 module SymmetryBases
 
 using Crystalline
-using SmithNormalForm
+using Crystalline: SmithNormalForm.smith, SmithNormalForm.Smith
 using PyCall
 using PrettyTables
 using JuMP, GLPK
@@ -123,7 +123,7 @@ end
 # elements Sᵢⱼ∈ℤ. To make nᵢ integer, we thus require zᵢ∈ℤ.
 
 """
-    compatibility_bases(F::SmithNormalForm.Smith, BRS::BandRepSet; algorithm)
+    compatibility_bases(F::Smith, BRS::BandRepSet; algorithm)
     compatibility_bases(sgnum::Integer, D::Integer=3; kwargs...)
 
 Computes the Hilbert bases associated with a Smith normal form `F` of the EBR matrix or from
@@ -142,7 +142,7 @@ time-reversal symmetry.
 - `verbose::Bool`: whether to print progress info during the Normaliz computation
 (`false`, default).
 """
-function compatibility_bases(F::SmithNormalForm.Smith, BRS::BandRepSet; 
+function compatibility_bases(F::Smith, BRS::BandRepSet; 
                              algorithm::String="DualMode", verbose::Bool=false)
     # To restrict nᵢ to only positive integers, i.e. ℕ, the values of zᵢ must be such that 
     # ∑ⱼ Sᵢⱼzⱼ ≥ 0. This defines a set of inequalities, which in turn defines a polyhedral
@@ -161,7 +161,7 @@ function compatibility_bases(F::SmithNormalForm.Smith, BRS::BandRepSet;
 end
 
 """
-    nontopological_bases(F::SmithNormalForm.Smith, BRS::BandRepSet; algorithm)
+    nontopological_bases(F::Smith, BRS::BandRepSet; algorithm)
     nontopological_bases(sgnum::Integer; kwargs...)
 
 Computes the "non-topological" Hilbert bases associated with a Smith normal form `F` of the
@@ -172,7 +172,7 @@ If the method is called with `sgnum::Integer`, the associated `BandRepSet` is al
 
 For possible keyword arguments `kwargs`, see `compatibility_bases(..)`.
 """
-function nontopological_bases(F::SmithNormalForm.Smith, BRS::BandRepSet;
+function nontopological_bases(F::Smith, BRS::BandRepSet;
                               algorithm::String="DualMode", verbose::Bool=false)
     # To find _all_ nontopological bases we build a cone subject to the inequalities 
     # (SΛy)ᵢ ≥ 0 with yᵢ ∈ ℤ, which automatically excludes topological cases (since they
@@ -199,8 +199,8 @@ for f in (:compatibility_bases, :nontopological_bases)
                     algorithm::String="DualMode", spinful::Bool=false, 
                     timereversal::Bool=false, allpaths::Bool=false)
             BRS = bandreps(sgnum, D; allpaths=allpaths, spinful=spinful, timereversal=timereversal)
-            B   = matrix(BRS, true)    # Matrix with columns of EBRs.
-            F   = Crystalline.smith(B) # Smith normal decomposition of B
+            B   = matrix(BRS, true) # Matrix with columns of EBRs.
+            F   = smith(B)          # Smith normal decomposition of B
 
             return $f(F, BRS, algorithm=algorithm)..., BRS
         end
