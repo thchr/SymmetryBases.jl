@@ -1,7 +1,6 @@
 module SymmetryBases
 
 using Crystalline
-using Crystalline: SmithNormalForm.smith, SmithNormalForm.Smith
 using PyCall
 using PrettyTables
 using JuMP, GLPK
