@@ -99,7 +99,7 @@ function show(io::IO, ::MIME"text/plain", sb::SymBasis)
         # header
         eachindex(sb),
         # row names
-        row_names = vcat(sb.irlabs, "ν"),
+        row_names = vcat(sb.irlabs, "μ"),
         # options/formatting/styling
         formatters = (v,i,j) -> iszero(v) ? "·" : string(v),
         vlines = [1,], hlines = [:begin, 1, Nⁱʳʳ+1, :end],
@@ -335,7 +335,7 @@ function calc_detailed_topology(n::AbstractVector{<:Integer},
         if !isnothing(M) # do a sanity-check to verify that expansion exists in full basis
             m = has_posint_expansion(n, M)
             if termination_status(m) ≠ MOI.OPTIMAL
-                throw("It must be possible to find an expansion in the full basis")
+                error("It must be possible to find an expansion in the full basis")
             end
         end
 
@@ -363,10 +363,10 @@ function calc_detailed_topology(n::AbstractVector{<:Integer},
     return calc_detailed_topology(n, nontopo_M, trivial_M, M)
 end
 
-function calc_detailed_topology(n::AbstractVector{<:Integer}, sgnum::Integer; 
+function calc_detailed_topology(n::AbstractVector{<:Integer}, sgnum::Integer, D::Integer=3;
             spinful::Bool=false, timereversal::Bool=true)
-    nontopo_sb, _, BRS = nontopological_bases(sgnum; spinful=spinful, timereversal=timereversal)
-    sb, _, _           = compatibility_bases(sgnum; spinful=spinful, timereversal=timereversal)
+    nontopo_sb, _, BRS = nontopological_bases(sgnum, D; spinful=spinful, timereversal=timereversal)
+    sb, _, _           = compatibility_bases(sgnum, D; spinful=spinful, timereversal=timereversal)
 
     return calc_detailed_topology(n, nontopo_sb, BRS, sb)
 end
