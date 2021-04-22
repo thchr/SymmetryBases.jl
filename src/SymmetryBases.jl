@@ -95,10 +95,9 @@ function show(io::IO, ::MIME"text/plain", sb::SymBasis)
 
     pretty_table(io, 
         # table contents
-        matrix(sb),
-        # header
-        eachindex(sb),
-        # row names
+        matrix(sb);
+        # column/row names
+        header = eachindex(sb),
         row_names = vcat(sb.irlabs, "μ"),
         # options/formatting/styling
         formatters = (v,i,j) -> iszero(v) ? "·" : string(v),
