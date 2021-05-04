@@ -12,7 +12,6 @@ struct SymBasis <: AbstractVector{Vector{Int}}
     sgnum::Int
     spinful::Bool
     timeinvar::Bool
-    allpaths::Bool
     compatbasis::Bool
 end
 function SymBasis(nsᴴ::AbstractMatrix{Int}, BRS::BandRepSet, compatbasis::Bool=true)
@@ -20,7 +19,7 @@ function SymBasis(nsᴴ::AbstractMatrix{Int}, BRS::BandRepSet, compatbasis::Bool
                    findfirst(f, BRS.irlabs):findlast(f, BRS.irlabs)) for klab in BRS.klabs]
     return SymBasis(collect(eachcol(nsᴴ)),
                     BRS.irlabs, BRS.klabs, BRS.kvs, kv2ir_idxs, 
-                    BRS.sgnum, BRS.spinful, BRS.timeinvar, BRS.allpaths, compatbasis)
+                    BRS.sgnum, BRS.spinful, BRS.timeinvar, compatbasis)
 end
 
 # accessors
@@ -31,14 +30,9 @@ irreplabels(sb::SymBasis) = sb.irlabs
 klabels(sb::SymBasis)     = sb.klabs
 isspinful(sb::SymBasis)   = sb.spinful
 istimeinvar(sb::SymBasis) = sb.timeinvar
-hasnonmax(sb::SymBasis)   = sb.allpaths
-iscompatbasis(sb::SymBasis) = sb.compatbasis
 fillings(sb::SymBasis)    = [nᴴ[end] for nᴴ in sb.symvecs]
-length(sb::SymBasis)      = length(vecs(sb))
 
 # define the AbstractArray interface for SymBasis
-size(sb::SymBasis) = (length(sb),)
+size(sb::SymBasis) = (length(vecs(sb)),)
 getindex(sb::SymBasis, keys...) = vecs(sb)[keys...]
-firstindex(::SymBasis) = 1
-lastindex(sb::SymBasis) = length(vecs(sb))
 IndexStyle(::SymBasis) = IndexLinear()

@@ -107,7 +107,7 @@ vectors in `sb_nontopo`.
 """
 function split_fragiletrivial_bases(sb_nontopo::SymBasis, B::AbstractMatrix)
     if sb_nontopo.compatbasis
-        throw(DomainError(sb_nontopo, "Specified SymBasis must have compatbasis=false"))
+        throw(DomainError(sb_nontopo, "provided `SymBasis` must have `compatbasis=false`"))
     end
     # Every vector of nsᴴ_nontopo that has a non-negative integer coefficient expansion in
     # EBRs, i.e. in B, represents a trivial basis element. All other elements represent 

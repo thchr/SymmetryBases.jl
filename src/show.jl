@@ -2,9 +2,8 @@ function show(io::IO, ::MIME"text/plain", sb::SymBasis)
     Nⁱʳʳ = length(sb[1]) - 1
 
     # print a "title" line and the irrep labels
-    println(io, iscompatbasis(sb) ? "Compatibility" : "Nontopological",
-                " SymBasis (#", num(sb), "): ",
-                length(sb), " Hilbert bases, sampling ",
+    println(io, "SymBasis (#", num(sb), "): ",
+                length(sb), " Hilbert vectors, sampling ",
                 Nⁱʳʳ, " LGIrreps ",
                 "(spin-", isspinful(sb) ? "½" : "1", " ",
                 istimeinvar(sb) ? "w/" : "w/o", " TR)")
@@ -29,6 +28,6 @@ function show(io::IO, ::MIME"text/plain", sb::SymBasis)
         )
 
     # print k-vec labels
-    print(io, "  KVecs (", hasnonmax(sb) ? "incl. non-maximal" : "maximal only", "): ")
+    print(io, "  KVecs: ")
     join(io, klabels(sb), ", ")
 end
