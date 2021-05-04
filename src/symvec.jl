@@ -20,8 +20,6 @@ function has_posint_expansion(n::AbstractVector{<:Integer}, M::AbstractMatrix{<:
     return m
 end
 
-@enum TopologyKind trivial=0 nontrivial=1 fragile=2
-
 """
     calc_detailed_topology(n, nontopo_M, trivial_M, M=nothing) -> ::TopologyKind
 
@@ -38,8 +36,8 @@ In this case, however, [`calc_topology`](@ref) will generally be far more effici
 If `M` is _not_ `nothing` (i.e. a matrix representing the full symmetry basis), an 
 additional sanity/safety check is carried out: otherwise not. Otherwise not necessary.
 
-Returns a member value of the `TopologyKind` Enum (`trivial`, `nontrivial`, or 
-`fragile`).
+Returns a member value of the `TopologyKind` Enum (`TRIVIAL`, `NONTRIVIAL`, or 
+`FRAGILE`).
 """
 function calc_detailed_topology(n::AbstractVector{<:Integer},
             nontopo_M::AbstractMatrix{<:Integer},
@@ -61,11 +59,11 @@ function calc_detailed_topology(n::AbstractVector{<:Integer},
             trivial_m = has_posint_expansion(n, trivial_M)
             if termination_status(trivial_m) ≠ MOI.OPTIMAL
                 # expansion in trivial-only basis elements impossible ⇒ fragile
-                return fragile
+                return FRAGILE
             end
         end
-                # expansion in trivial-only elements feasible         ⇒ trivial
-        return trivial
+        # expansion in trivial-only elements feasible                ⇒ trivial
+        return TRIVIAL
         
     elseif status′ == MOI.INFEASIBLE    # infeasible problem          ⇒ nontrivial
         if !isnothing(M) # do a sanity-check to verify that expansion exists in full basis
@@ -75,7 +73,7 @@ function calc_detailed_topology(n::AbstractVector{<:Integer},
             end
         end
 
-        return nontrivial
+        return NONTRIVIAL
 
     else
         throw(DomainError(termination_status(nontopo_m), 
@@ -136,7 +134,7 @@ function calc_topology(n::AbstractVector{<:Integer}, Bℤ::fmpz_mat)
     # test whether an integer coefficient expansion exists for `nℤ` in the EBR basis `Bℤ`
     solvable, _ = cansolve(Bℤ, nℤ)
 
-    return solvable ? trivial : nontrivial
+    return solvable ? TRIVIAL : NONTRIVIAL
 end
 
 function calc_topology(n::AbstractVector{<:Integer}, B::Matrix{<:Integer})

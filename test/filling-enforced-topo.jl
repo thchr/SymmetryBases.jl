@@ -5,14 +5,14 @@ using ProgressMeter
 # ---------------------------------------------------------------------------------------- #
 function calc_topo(n, topo_check, Bℤ, nontopo_M=nothing, trivial_M=nothing)
 
-    if (topo_check == nontrivial || # ⇐ check only strict trivial/nontrivial distinction
+    if (topo_check == NONTRIVIAL || # ⇐ check only strict trivial/nontrivial distinction
         trivial_M === nothing) # ⇐ no fragile phases possible: use fast linear algebra instead of (slow) optimization
         # check "Z₂" TQC-type topology of Hilbert bases
         return calc_topology(n, Bℤ)
 
-    elseif topo_check == fragile
+    elseif topo_check == FRAGILE
         # check both "Z₂" TQC-type topology and fragile topology of Hilbert bases
-        return calc_detailed_topology(n, nontopo_M, trivial_M)      
+        return calc_detailed_topology(n, nontopo_M, trivial_M)
     end
 end
 # ---------------------------------------------------------------------------------------- #
@@ -20,7 +20,7 @@ end
 
 sgnums       = 1:230 # 47, 83, 123
 timereversal = false
-topo_check   = nontrivial
+topo_check   = NONTRIVIAL
 verbose      = true
 workhard     = false
 
@@ -30,11 +30,11 @@ for sgnum in sgnums
     BRS  = bandreps(sgnum, spinful=false, timereversal=timereversal)
     B    = Crystalline.matrix(BRS, true) # Matrix with columns of EBRs
     isℤ₁ = classification(BRS) == "Z₁"
-    if topo_check == nontrivial && isℤ₁
+    if topo_check == NONTRIVIAL && isℤ₁
         println("\n── trivial symmetry indicator group ⇒ skipping\n") 
         continue
     end
-    if (!workhard && topo_check == fragile) && ((timereversal && sgnum ∈ (47, 83, 123)) ||
+    if (!workhard && topo_check == FRAGILE) && ((timereversal && sgnum ∈ (47, 83, 123)) ||
                                                 (!timereversal && sgnum ∈ (83, 174, 175, 176)))
         println("\n── skipping computational quagmire\n")
         continue
@@ -47,7 +47,7 @@ for sgnum in sgnums
     verbose && println("── computed sb ($(length(sb)) vectors)"); flush(stdout) 
 
     # compute non-topological Hilbert bases
-    if topo_check == fragile
+    if topo_check == FRAGILE
         nontopo_sb, _ = nontopological_bases(F, BRS;)
         verbose && println("── computed nontopo_sb ($(length(nontopo_sb)) vectors)")
         flush(stdout)
@@ -69,21 +69,21 @@ for sgnum in sgnums
         print("   μ = ", μ, 
               " "^(ndigits(maximum(μs))-ndigits(μ)), " (", length(idxs), " vectors)")
         fe_nontrivial = true
-        fe_fragile = fe_mixed = (topo_check == fragile)
+        fe_fragile = fe_mixed = (topo_check == FRAGILE)
         for i in idxs
             n = sb[i]
-            if topo_check == fragile && n ∈ (@view nontopo_sb[fragile_idxs])
-                topo = fragile # fast-path check, not requiring optimization
+            if topo_check == FRAGILE && n ∈ (@view nontopo_sb[fragile_idxs])
+                topo = FRAGILE # fast-path check, not requiring optimization
             else
                 topo = calc_topo(n, topo_check, Bℤ, nontopo_M, trivial_M)
             end
             
-            if topo == trivial
+            if topo == TRIVIAL
                 fe_fragile = fe_mixed = fe_nontrivial = false
                 break
             end
-            topo == fragile    && (fe_nontrivial = false)
-            topo == nontrivial && (fe_fragile = false)
+            topo == FRAGILE    && (fe_nontrivial = false)
+            topo == NONTRIVIAL && (fe_fragile = false)
         end
 
         space = " "^(ndigits(length(sb)) - (ndigits(length(idxs))))
