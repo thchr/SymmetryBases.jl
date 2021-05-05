@@ -1,7 +1,7 @@
 using Crystalline
 using SymmetryBases
 using Test
-inlude("consistency_check.jl")
+include("consistency_check.jl")
 
 test_nontopo = true
 spinful = false
@@ -21,12 +21,12 @@ for sgnum in 1:MAX_SGNUM[3]
             " (", dᵇˢ, " \"band structure dimensions\"; ", Nⁱʳʳ, " inequalities)")
 
     # Compatibility Hilbert bases  
-    sb, zsᴴ = compatibility_bases(F, BRS, algorithm=algorithm)
+    sb = compatibility_bases(F, BRS, algorithm=algorithm)
     nsᴴ = matrix(sb) 
     Nᴴ = length(sb) # Number of Hilbert bases
 
     # Nontopological Hilbert bases 
-    sb_nontopo, ysᴴ_nontopo = nontopological_bases(F, BRS, algorithm=algorithm)
+    sb_nontopo  = nontopological_bases(F, BRS, algorithm=algorithm)
     nsᴴ_nontopo = matrix(sb_nontopo)
     Nᴴ_nontopo  = length(sb_nontopo)
 
@@ -42,6 +42,6 @@ for sgnum in 1:MAX_SGNUM[3]
 
     # Test consistency of bases, if requested
     if test_nontopo
-        _test_hilbert_bases_consistency(BRS, F, nsᴴ, nsᴴ_nontopo, zsᴴ)
+        _test_hilbert_bases_consistency(BRS, F, nsᴴ, nsᴴ_nontopo)
     end
 end

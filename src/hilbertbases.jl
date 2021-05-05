@@ -5,16 +5,17 @@
 # elements Sᵢⱼ∈ℤ. To make nᵢ integer, we thus require zᵢ∈ℤ.
 
 """
-    compatibility_bases(F::Smith, BRS::BandRepSet; algorithm)
+    compatibility_bases(F::Smith, BRS::BandRepSet; algorithm, verbose)
     compatibility_bases(sgnum::Integer, D::Integer=3; kwargs...)
 
-Computes the Hilbert bases associated with a Smith normal form `F` of the EBR matrix or from
-a space group number `sgnum`, which respects all compatibility relations. The resulting 
-bases form a non-negative integer coefficient basis for all possible band structures.
+Computes the Hilbert basis associated with a Smith normal form `F` of the EBR matrix or from
+a space group number `sgnum`, which respects all compatibility relations, returning a
+`SymBasis` structure. The returned basis is a non-negative integer coefficient basis
+for all possible band structures {BS}.
 
-If the method is called with `sgnum::Integer`, the associated `BandRepSet` is also returned.
+If the method is called with `sgnum::Integer`, the underlying `BandRepSet` is also returned.
 
-Several keyword arguments `kwargs` are possible:
+## Keyword arguments
 
 - `algorithm::String`: controls the algorithm used by Normaliz to compute the Hilbert
 basis. Choices are `"DualMode"` (default) and `"PrimalMode"`
@@ -39,20 +40,21 @@ function compatibility_bases(F::Smith, BRS::BandRepSet;
 
     nsᴴ  = S*zsᴴ                          # Columns are Hilbert basis vectors in 𝐧-space
 
-    return SymBasis(nsᴴ, BRS, true), zsᴴ  # Bases of all valid symmetry vectors in 𝐧- and 𝐲-space
+    return SymBasis(nsᴴ, BRS, true)       # Bases of all valid symmetry vectors in 𝐧-space
 end
 
 """
-    nontopological_bases(F::Smith, BRS::BandRepSet; algorithm)
-    nontopological_bases(sgnum::Integer; kwargs...)
+    nontopological_bases(F::Smith, BRS::BandRepSet; algorithm, verbose)
+    nontopological_bases(sgnum::Integer, D::Integer=3; kwargs...)
 
-Computes the "non-topological" Hilbert bases associated with a Smith normal form `F` of the
-EBR matrix or from a space group number `sgnum`, which forms a non-negative, integer span of
-all non-topological band structures (i.e. both trivial and fragile-topological).
+Computes the "non-topological" Hilbert basis associated with a Smith normal form `F` of the
+EBR matrix or from a space group number `sgnum`, returning a `SymBasis` structure. 
+The returned basis is a non-negative integer coefficient basis for all non-topological band
+structures (i.e. both trivial and fragile-topological).
 
-If the method is called with `sgnum::Integer`, the associated `BandRepSet` is also returned.
+If the method is called with `sgnum::Integer`, the underlying `BandRepSet` is also returned.
 
-For possible keyword arguments `kwargs`, see `compatibility_bases(..)`.
+For possible keyword arguments, see `compatibility_bases(..)`.
 """
 function nontopological_bases(F::Smith, BRS::BandRepSet;
                               algorithm::String="DualMode", verbose::Bool=false)
@@ -71,26 +73,26 @@ function nontopological_bases(F::Smith, BRS::BandRepSet;
 
     nsᴴ_nontopo = SΛ*ysᴴ_nontopo                      # Hilbert basis vectors in 𝐧-space
 
-    return SymBasis(nsᴴ_nontopo, BRS, false), ysᴴ_nontopo # Bases of nontopological states
+    return SymBasis(nsᴴ_nontopo, BRS, false) # Bases of nontopological states in 𝐧-space
 end
 
 # Convenience accessors from a space group number and dimensionality alone
 for f in (:compatibility_bases, :nontopological_bases)
     @eval begin
         function $f(sgnum::Integer, D::Integer=3; 
-                    algorithm::String="DualMode", spinful::Bool=false, 
-                    timereversal::Bool=true, allpaths::Bool=false)
+                    algorithm::String="DualMode", verbose::Bool=false,
+                    spinful::Bool=false, timereversal::Bool=true, allpaths::Bool=false)
             BRS = bandreps(sgnum, D; allpaths=allpaths, spinful=spinful, timereversal=timereversal)
             B   = matrix(BRS, true) # Matrix with columns of EBRs.
             F   = smith(B)          # Smith normal decomposition of B
 
-            return $f(F, BRS, algorithm=algorithm)..., BRS
+            return $f(F, BRS, algorithm=algorithm, verbose=verbose), BRS
         end
     end
 end
 
 """
-    $(TYPEDSIGNATURES)
+$(TYPEDSIGNATURES)
 
 Compute the trivial and fragile indices of a _nontopological_ `SymBasis`, `sb_nontopo`, by 
 determining whether or not each has a positive-coefficient expansion in elementary band

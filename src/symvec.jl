@@ -98,9 +98,11 @@ function calc_detailed_topology(n::AbstractVector{<:Integer},
 end
 
 function calc_detailed_topology(n::AbstractVector{<:Integer}, sgnum::Integer, D::Integer=3;
-            spinful::Bool=false, timereversal::Bool=true)
-    nontopo_sb, _, BRS = nontopological_bases(sgnum, D; spinful=spinful, timereversal=timereversal)
-    sb, _, _           = compatibility_bases(sgnum, D; spinful=spinful, timereversal=timereversal)
+            spinful::Bool=false, timereversal::Bool=true, allpaths::Bool=false)
+    BRS = bandreps(sgnum, D, spinful=spinful, timereversal=timereversal, allpaths=allpaths)
+    F   = smith(matrix(BRS, true))   
+    nontopo_sb = nontopological_bases(F, BRS)
+    sb         = compatibility_bases(F, BRS)
 
     return calc_detailed_topology(n, nontopo_sb, BRS, sb)
 end

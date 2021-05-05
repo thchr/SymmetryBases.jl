@@ -1,18 +1,18 @@
 using Test
 using SymmetryBases
 using Crystalline
-using SmithNormalForm
+using JuMP, GLPK
 
 """
-    _test_hilbert_bases_consistency(BRS::BandRepSet, F::SmithNormalForm.Smith,
-                    nsᴴ::AbstractMatrix, nsᴴ_nontopo::AbstractMatrix, zsᴴ::AbstractMatrix)
+    _test_hilbert_bases_consistency(BRS::BandRepSet, F::Smith,
+                    nsᴴ::AbstractMatrix, nsᴴ_nontopo::AbstractMatrix)
 
 Test that the obtained "non-topological" bases indeed obey some of the conditions that we
 know they must. Prints a checkmark (✓) if succesful; throws `Test.FallbackTestSetException`
 otherwise. Returns `nothing`.
 """
-function _test_hilbert_bases_consistency(BRS::BandRepSet, F::SmithNormalForm.Smith,
-                nsᴴ::AbstractMatrix, nsᴴ_nontopo::AbstractMatrix, zsᴴ::AbstractMatrix)
+function _test_hilbert_bases_consistency(BRS::BandRepSet, F::Smith,
+                nsᴴ::AbstractMatrix, nsᴴ_nontopo::AbstractMatrix)
 
     print("   ... checking consistency of non-topological bases: ")
 
@@ -28,10 +28,14 @@ function _test_hilbert_bases_consistency(BRS::BandRepSet, F::SmithNormalForm.Smi
     #       Hilbert basis for all non-topological states. The easiest way to see this is to
     #       think in terms of a "unit cell" for the Hilbert bases, and then realize that 
     #       this unit cell may be far larger, when we take a subcone of the original cone.
-    Λ = @view F.SNF[OneTo(dᵇˢ)] # Nonzero invariant factors of Smith normal decomposition
+    # ... first, reconstruct zsᴴ, by applying first dᵇˢ rows of S⁻¹ to nsᴴ
+    S⁻¹ = @view F.Sinv[1:dᵇˢ, :]
+    zsᴴ = S⁻¹*nsᴴ # exploits that F.Sinv[1:dᵇˢ,:] * F.S[:,1:dᵇˢ] = I
+    # ... next, actually do check described above
+    Λ = @view F.SNF[1:dᵇˢ] # Nonzero invariant factors of Smith normal decomposition
     nontopo_idxs_subset = findall(zᴴ -> all(zᴴΛᵢ -> mod(zᴴΛᵢ[1], zᴴΛᵢ[2]) == 0, zip(zᴴ, Λ)),
                            collect(eachcol(zsᴴ)))
-    topo_idxs_subset   = findall(i -> i ∉ nontopo_idxs_subset, OneTo(Nᴴ))
+    topo_idxs_subset   = findall(i -> i ∉ nontopo_idxs_subset, 1:Nᴴ)
     nsᴴ_nontopo_subset = @view nsᴴ[:, nontopo_idxs_subset]
     nsᴴ_topo_subset    = @view nsᴴ[:, topo_idxs_subset]
 

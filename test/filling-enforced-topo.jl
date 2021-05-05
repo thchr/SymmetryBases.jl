@@ -41,14 +41,14 @@ for sgnum in sgnums
     end
     println(); flush(stdout)
 
-    F     = Crystalline.smith(B) # Smith normal decomposition of B
-    sb, _ = compatibility_bases(F, BRS;)
-    Bℤ    = MatrixSpace(ZZ, size(B)...)(B)
+    F  = Crystalline.smith(B) # Smith normal decomposition of B
+    sb = compatibility_bases(F, BRS)
+    Bℤ = MatrixSpace(ZZ, size(B)...)(B)
     verbose && println("── computed sb ($(length(sb)) vectors)"); flush(stdout) 
 
     # compute non-topological Hilbert bases
     if topo_check == FRAGILE
-        nontopo_sb, _ = nontopological_bases(F, BRS;)
+        nontopo_sb = nontopological_bases(F, BRS)
         verbose && println("── computed nontopo_sb ($(length(nontopo_sb)) vectors)")
         flush(stdout)
         nontopo_M = Crystalline.matrix(nontopo_sb)
