@@ -20,28 +20,28 @@ for sgnum in 1:MAX_SGNUM[3]
     println("\nSG", sgnum, ": ", classification(BRS), 
             " (", dᵇˢ, " \"band structure dimensions\"; ", Nⁱʳʳ, " inequalities)")
 
-    # Compatibility Hilbert bases  
-    sb = compatibility_bases(F, BRS, algorithm=algorithm)
+    # Compatibility Hilbert basis  
+    sb = compatibility_basis(F, BRS, algorithm=algorithm)
     nsᴴ = matrix(sb) 
-    Nᴴ = length(sb) # Number of Hilbert bases
+    Nᴴ = length(sb) # Number of Hilbert basis elements
 
-    # Nontopological Hilbert bases 
-    sb_nontopo  = nontopological_bases(F, BRS, algorithm=algorithm)
+    # Nontopological Hilbert basis 
+    sb_nontopo  = nontopological_basis(F, BRS, algorithm=algorithm)
     nsᴴ_nontopo = matrix(sb_nontopo)
     Nᴴ_nontopo  = length(sb_nontopo)
 
-    # Splitting into trivial and fragile Hilbert bases
-    trivial_idxs, fragile_idxs = split_fragiletrivial_bases(sb_nontopo, B)
+    # Splitting into trivial and fragile Hilbert basis elements
+    trivial_idxs, fragile_idxs = split_fragiletrivial(sb_nontopo, B)
 
-    # Write some stats about the obtained Hilbert bases
+    # Write some stats about the obtained Hilbert basis
     println("   ", Nᴱᴮᴿ,       " EBRs")
-    println("   ", Nᴴ,         " compatibility bases")
-    println("   ", Nᴴ_nontopo, " non-topological bases")
-    println("      ", size(trivial_idxs, 2), " trivial bases")
-    println("      ", size(fragile_idxs, 2), " fragile bases")
+    println("   ", Nᴴ,         " compatibility elements")
+    println("   ", Nᴴ_nontopo, " nontopological elements")
+    println("      ", size(trivial_idxs, 2), " trivial elements")
+    println("      ", size(fragile_idxs, 2), " fragile elements")
 
-    # Test consistency of bases, if requested
+    # Test consistency of basis, if requested
     if test_nontopo
-        _test_hilbert_bases_consistency(BRS, F, nsᴴ, nsᴴ_nontopo)
+        _test_hilbert_basis_consistency(BRS, F, nsᴴ, nsᴴ_nontopo)
     end
 end

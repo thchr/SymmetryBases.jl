@@ -4,29 +4,29 @@ using Crystalline
 using JuMP, GLPK
 
 """
-    _test_hilbert_bases_consistency(BRS::BandRepSet, F::Smith,
+    _test_hilbert_basis_consistency(BRS::BandRepSet, F::Smith,
                     nsᴴ::AbstractMatrix, nsᴴ_nontopo::AbstractMatrix)
 
-Test that the obtained "non-topological" bases indeed obey some of the conditions that we
+Test that the obtained "non-topological" basis indeed obey some of the conditions that we
 know they must. Prints a checkmark (✓) if succesful; throws `Test.FallbackTestSetException`
 otherwise. Returns `nothing`.
 """
-function _test_hilbert_bases_consistency(BRS::BandRepSet, F::Smith,
+function _test_hilbert_basis_consistency(BRS::BandRepSet, F::Smith,
                 nsᴴ::AbstractMatrix, nsᴴ_nontopo::AbstractMatrix)
 
-    print("   ... checking consistency of non-topological bases: ")
+    print("   ... checking consistency of non-topological basis: ")
 
     dᵇˢ        = count(!iszero, F.SNF)  # "Dimensionality" of band structure
-    Nᴴ         = size(nsᴴ, 2)           # Number of compatibility Hilbert bases
-    Nᴴ_nontopo = size(nsᴴ_nontopo, 2)   # Number of nontopological Hilbert bases
+    Nᴴ         = size(nsᴴ, 2)           # Number of compatibility Hilbert basis elements
+    Nᴴ_nontopo = size(nsᴴ_nontopo, 2)   # Number of nontopological Hilbert basis elements
 
     # All zsᴴ that are not element divisible by Λ ≡ F.SNF correspond to "proper" topological
     # cases (i.e. not fragile). This is because those z ≡ Λy with yᵢ∈ℚ\ℤ are topological, 
     # whereas all those with yᵢ∈ℤ are either trivial or fragilely topological.
     # Note: The approach below is not valid in general: while it does find all the 
-    #       non-topological elements among the Hilbert bases nsᴴ, it does not find a full
+    #       non-topological elements among the Hilbert basis nsᴴ, it does not find a full
     #       Hilbert basis for all non-topological states. The easiest way to see this is to
-    #       think in terms of a "unit cell" for the Hilbert bases, and then realize that 
+    #       think in terms of a "unit cell" for the Hilbert basis, and then realize that 
     #       this unit cell may be far larger, when we take a subcone of the original cone.
     # ... first, reconstruct zsᴴ, by applying first dᵇˢ rows of S⁻¹ to nsᴴ
     S⁻¹ = @view F.Sinv[1:dᵇˢ, :]

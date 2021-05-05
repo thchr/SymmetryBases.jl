@@ -7,11 +7,11 @@ function calc_topo(n, topo_check, Bℤ, nontopo_M=nothing, trivial_M=nothing)
 
     if (topo_check == NONTRIVIAL || # ⇐ check only strict trivial/nontrivial distinction
         trivial_M === nothing) # ⇐ no fragile phases possible: use fast linear algebra instead of (slow) optimization
-        # check "Z₂" TQC-type topology of Hilbert bases
+        # check "Z₂" TQC-type topology of Hilbert basis
         return calc_topology(n, Bℤ)
 
     elseif topo_check == FRAGILE
-        # check both "Z₂" TQC-type topology and fragile topology of Hilbert bases
+        # check both "Z₂" TQC-type topology and fragile topology of Hilbert basis
         return calc_detailed_topology(n, nontopo_M, trivial_M)
     end
 end
@@ -42,19 +42,19 @@ for sgnum in sgnums
     println(); flush(stdout)
 
     F  = Crystalline.smith(B) # Smith normal decomposition of B
-    sb = compatibility_bases(F, BRS)
+    sb = compatibility_basis(F, BRS)
     Bℤ = MatrixSpace(ZZ, size(B)...)(B)
     verbose && println("── computed sb ($(length(sb)) vectors)"); flush(stdout) 
 
-    # compute non-topological Hilbert bases
+    # compute non-topological Hilbert basis
     if topo_check == FRAGILE
-        nontopo_sb = nontopological_bases(F, BRS)
+        nontopo_sb = nontopological_basis(F, BRS)
         verbose && println("── computed nontopo_sb ($(length(nontopo_sb)) vectors)")
         flush(stdout)
         nontopo_M = Crystalline.matrix(nontopo_sb)
 
-        trivial_idxs, fragile_idxs = split_fragiletrivial_bases(nontopo_sb, B)
-        verbose && println("── split fragile and trivial bases ($(length(trivial_idxs))|$(length(fragile_idxs)))"); flush(stdout)
+        trivial_idxs, fragile_idxs = split_fragiletrivial(nontopo_sb, B)
+        verbose && println("── split fragile and trivial elements ($(length(trivial_idxs))|$(length(fragile_idxs)))"); flush(stdout)
         can_be_fragile = !isempty(fragile_idxs)
         trivial_M = can_be_fragile ? (@view nontopo_M[:, trivial_idxs]) : nothing
     else

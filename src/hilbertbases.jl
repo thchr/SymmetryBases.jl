@@ -5,8 +5,8 @@
 # elements Sᵢⱼ∈ℤ. To make nᵢ integer, we thus require zᵢ∈ℤ.
 
 """
-    compatibility_bases(F::Smith, BRS::BandRepSet; algorithm, verbose)
-    compatibility_bases(sgnum::Integer, D::Integer=3; kwargs...)
+    compatibility_basis(F::Smith, BRS::BandRepSet; algorithm, verbose)
+    compatibility_basis(sgnum::Integer, D::Integer=3; kwargs...)
 
 Computes the Hilbert basis associated with a Smith normal form `F` of the EBR matrix or from
 a space group number `sgnum`, which respects all compatibility relations, returning a
@@ -25,7 +25,7 @@ time-reversal symmetry.
 - `verbose::Bool`: whether to print progress info during the Normaliz computation
 (`false`, default).
 """
-function compatibility_bases(F::Smith, BRS::BandRepSet; 
+function compatibility_basis(F::Smith, BRS::BandRepSet; 
                              algorithm::String="DualMode", verbose::Bool=false)
     # To restrict nᵢ to only positive integers, i.e. ℕ, the values of zᵢ must be such that 
     # ∑ⱼ Sᵢⱼzⱼ ≥ 0. This defines a set of inequalities, which in turn defines a polyhedral
@@ -44,21 +44,21 @@ function compatibility_bases(F::Smith, BRS::BandRepSet;
 end
 
 """
-    nontopological_bases(F::Smith, BRS::BandRepSet; algorithm, verbose)
-    nontopological_bases(sgnum::Integer, D::Integer=3; kwargs...)
+    nontopological_basis(F::Smith, BRS::BandRepSet; algorithm, verbose)
+    nontopological_basis(sgnum::Integer, D::Integer=3; kwargs...)
 
-Computes the "non-topological" Hilbert basis associated with a Smith normal form `F` of the
+Computes the "nontopological" Hilbert basis associated with a Smith normal form `F` of the
 EBR matrix or from a space group number `sgnum`, returning a `SymBasis` structure. 
 The returned basis is a non-negative integer coefficient basis for all non-topological band
-structures (i.e. both trivial and fragile-topological).
+structures {AI+F} (i.e. both trivial and fragile-topological).
 
 If the method is called with `sgnum::Integer`, the underlying `BandRepSet` is also returned.
 
-For possible keyword arguments, see `compatibility_bases(..)`.
+For possible keyword arguments, see `compatibility_basis(..)`.
 """
-function nontopological_bases(F::Smith, BRS::BandRepSet;
+function nontopological_basis(F::Smith, BRS::BandRepSet;
                               algorithm::String="DualMode", verbose::Bool=false)
-    # To find _all_ nontopological bases we build a cone subject to the inequalities 
+    # To find the nontopological basis we build a cone subject to the inequalities 
     # (SΛy)ᵢ ≥ 0 with yᵢ ∈ ℤ, which automatically excludes topological cases (since they
     # correspond to rational yᵢ)
     dᵇˢ = count(!iszero, F.SNF)  # "Dimensionality" of band structure
@@ -77,7 +77,7 @@ function nontopological_bases(F::Smith, BRS::BandRepSet;
 end
 
 # Convenience accessors from a space group number and dimensionality alone
-for f in (:compatibility_bases, :nontopological_bases)
+for f in (:compatibility_basis, :nontopological_basis)
     @eval begin
         function $f(sgnum::Integer, D::Integer=3; 
                     algorithm::String="DualMode", verbose::Bool=false,
@@ -107,7 +107,7 @@ otherwise `false`.
 Returns trivial indices, `trivial_idxs`, and fragile indices, `fragile_idxs`, into the basis
 vectors in `sb_nontopo`.
 """
-function split_fragiletrivial_bases(sb_nontopo::SymBasis, B::AbstractMatrix)
+function split_fragiletrivial(sb_nontopo::SymBasis, B::AbstractMatrix)
     if sb_nontopo.compatbasis
         throw(DomainError(sb_nontopo, "provided `SymBasis` must have `compatbasis=false`"))
     end
@@ -136,14 +136,14 @@ function split_fragiletrivial_bases(sb_nontopo::SymBasis, B::AbstractMatrix)
 
     return trivial_idxs, fragile_idxs
 end
-function split_fragiletrivial_bases(sb_nontopo::SymBasis, BRS::BandRepSet)
+function split_fragiletrivial(sb_nontopo::SymBasis, BRS::BandRepSet)
     Nirr, Nrows = length(irreplabels(sb_nontopo)), length(first(sb_nontopo))
     includedim = (Nrows == Nirr+1) ? true : false
 
     @assert (includedim || Nrows == Nirr)
     @assert Nirr == length(first(BRS)) "Non-equal number of irreps in SymBasis and BandRepSet"    
 
-    split_fragiletrivial_bases(sb_nontopo, matrix(BRS, includedim))
+    split_fragiletrivial(sb_nontopo, matrix(BRS, includedim))
 end
 
 # Footnotes:
@@ -157,5 +157,5 @@ end
 # which then calculates `<quantity-to-compute>` and stores it in `C` (here, "HilbertBasis");
 # it can then subsequently be retrieved from `C` with `C.HilbertBasis()`.
 # Some situations remain effectively out of reach still: for bosons without time-reversal
-# symmetry, there are a handful of SGs for which nontopological_bases(..) does not seem to
+# symmetry, there are a handful of SGs for which nontopological_basis(..) does not seem to
 # terminate in a reasonable amount of time (15h+ tested).

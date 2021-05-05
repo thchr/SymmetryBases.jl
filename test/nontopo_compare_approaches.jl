@@ -1,4 +1,4 @@
-# PURPOSE: compare computation of non-topological Hilbert bases (i.e. {AI+F}) via Smith
+# PURPOSE: compare computation of non-topological Hilbert basis (i.e. {AI+F}) via Smith
 # normal decomposition or directly via EBR basis matrix; check equivalence and compare speed
 # OUTCOME: directly using the EBR basis is actually faster in aggregate
 

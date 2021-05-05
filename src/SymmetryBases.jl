@@ -36,7 +36,7 @@ export TopologyKind, TRIVIAL, NONTRIVIAL, FRAGILE
 include("show.jl")
 
 include("hilbertbases.jl")
-export compatibility_bases, nontopological_bases, split_fragiletrivial_bases
+export compatibility_basis, nontopological_basis, split_fragiletrivial
 
 include("symvec.jl")
 export has_posint_expansion, calc_detailed_topology, calc_topology,

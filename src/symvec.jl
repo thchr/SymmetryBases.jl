@@ -88,7 +88,7 @@ function calc_detailed_topology(n::AbstractVector{<:Integer},
     
     nontopo_M = matrix(nontopo_sb)
     
-    trivial_idxs, fragile_idxs = split_fragiletrivial_bases(nontopo_sb, matrix(BRS, true))
+    trivial_idxs, fragile_idxs = split_fragiletrivial(nontopo_sb, matrix(BRS, true))
     can_be_fragile = !isempty(fragile_idxs)
     trivial_M = can_be_fragile ? (@view nontopo_M[:, trivial_idxs]) : nothing
     
@@ -101,8 +101,8 @@ function calc_detailed_topology(n::AbstractVector{<:Integer}, sgnum::Integer, D:
             spinful::Bool=false, timereversal::Bool=true, allpaths::Bool=false)
     BRS = bandreps(sgnum, D, spinful=spinful, timereversal=timereversal, allpaths=allpaths)
     F   = smith(matrix(BRS, true))   
-    nontopo_sb = nontopological_bases(F, BRS)
-    sb         = compatibility_bases(F, BRS)
+    nontopo_sb = nontopological_basis(F, BRS)
+    sb         = compatibility_basis(F, BRS)
 
     return calc_detailed_topology(n, nontopo_sb, BRS, sb)
 end
@@ -182,7 +182,7 @@ of the EBR matrix ``\\mathbf{A} = \\mathbf{S}\\boldsymbol{\\Lambda}\\mathbf{T}``
 
 ## Example
 ```julia-repl
-julia> sb, brs = compatibility_bases(22, 3); # from Crystalline.jl
+julia> sb, brs = compatibility_basis(22, 3); # from Crystalline.jl
 julia> n = sb[1];
 
 # test a valid symmetry vector

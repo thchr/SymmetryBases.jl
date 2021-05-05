@@ -11,14 +11,14 @@ N_ntsb = Vector{Int}(undef, 230)
 for sgnum in 1:230
     println(sgnum)
     t = @elapsed begin
-        sb, _ = compatibility_bases(sgnum, 3, timereversal=has_tr)    # basis for {BS}
+        sb, _ = compatibility_basis(sgnum, 3, timereversal=has_tr)    # basis for {BS}
     end
     t_sb[sgnum] = t
     N_sb[sgnum] = length(sb)
     println("   ", "sb:   ", round(t, digits=2), " s")
     
     t′ = @elapsed begin
-        ntsb, _ = nontopological_bases(sgnum, 3, timereversal=has_tr) # basis for {AI+F}
+        ntsb, _ = nontopological_basis(sgnum, 3, timereversal=has_tr) # basis for {AI+F}
     end
     t_ntsb[sgnum] = t′
     N_ntsb[sgnum] = length(ntsb)
