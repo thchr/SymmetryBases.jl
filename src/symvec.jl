@@ -76,8 +76,8 @@ function calc_detailed_topology(n::AbstractVector{<:Integer},
         return NONTRIVIAL
 
     else
-        throw(DomainError(termination_status(nontopo_m), 
-            "Unexpected termination status of nontopo_m: expected OPTIMAL or INFEASIBLE"))
+        throw(DomainError(status′, 
+            "unexpected optimization termination status: expected OPTIMAL or INFEASIBLE"))
     end
 
     return 
@@ -151,3 +151,56 @@ function calc_topology(n::AbstractVector{<:Integer}, BRS::BandRepSet)
 
     calc_topology(n, matrix(BRS, includedim))
 end
+
+# -----------------------------------------------------------------------------------------
+# test whether a band grouping respects compatibility relations, i.e. are in {BS}
+# (another way would be to use a `SymBasis` and `has_posint_expansion` to test whether and
+# integer conical combination exists; but that is _much_ slower (~30-150× at least))
+"""
+$(TYPEDSIGNATURES)
+
+Test whether a symmetry vector `n` is a valid band grouping, i.e. whether it fulfils all
+compatibility relations in the Brillouin zone and is non-negative. That is, test whether
+`n` belong to the set of physical band structures {BS}.
+
+## Implementation
+
+Belongingness to {BS} is tested by comparing to a set of elementary band representations
+(EBRs), provided either as a `BandRepSet`, a `Matrix{<:Integer}`, or a `Smith`
+decomposition.
+A symmetry vector ``\\mathbf{n}`` is in {BS} if
+
+``
+\\tilde{\\mathbf{S}}\\tilde{\\mathbf{S}}^{-1}\\mathbf{n} = \\mathbf{n}
+``
+
+where ``\\tilde{\\mathbf{S}}`` (``\\tilde{\\mathbf{S}}^{-1}``) denotes the nonsingular
+columns (rows) of ``\\mathbf{S}`` (``\\mathbf{S}^{-1}``) in the Smith normal decomposition
+of the EBR matrix ``\\mathbf{A} = \\mathbf{S}\\boldsymbol{\\Lambda}\\mathbf{T}``.
+
+## Example
+```julia-repl
+julia> sb, brs = compatibility_bases(22, 3); # from Crystalline.jl
+julia> n = sb[1];
+
+# test a valid symmetry vector
+julia> isbandstruct(n, brs)
+true
+
+# test an invalid symmetry vector
+julia> n′ = copy(n);
+julia> n′[1] += 1;              # invalid modification
+julia> isbandstruct(n′, brs)
+false
+```
+"""
+function isbandstruct(n::AbstractVector{<:Integer}, F::Smith)
+    dᵇˢ = count(!iszero, F.SNF)
+    S   = @view F.S[:,OneTo(dᵇˢ)]     # relevant columns of S only
+    S⁻¹ = @view F.Sinv[OneTo(dᵇˢ), :] # relevant rows of S⁻¹ only
+    LHS = (S*S⁻¹ - I)*n
+
+    return all(==(0), LHS)
+end
+isbandstruct(n::AbstractVector{<:Integer}, B::Matrix{<:Integer}) = isbandstruct(n, smith(B))
+isbandstruct(n::AbstractVector{<:Integer}, BRS::BandRepSet) = isbandstruct(n, matrix(BRS, true))

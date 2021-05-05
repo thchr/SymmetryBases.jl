@@ -6,6 +6,7 @@ using PrettyTables
 using JuMP, GLPK
 using Nemo # for `calc_topology`
 using DocStringExtensions
+using LinearAlgebra
 
 import Base: OneTo, show, size, getindex, firstindex, lastindex, IndexStyle, length
 import Crystalline: matrix, vecs, num, irreplabels, klabels, isspinful, istimeinvar
@@ -38,7 +39,8 @@ include("hilbertbases.jl")
 export compatibility_bases, nontopological_bases, split_fragiletrivial_bases
 
 include("symvec.jl")
-export has_posint_expansion, calc_detailed_topology, calc_topology
+export has_posint_expansion, calc_detailed_topology, calc_topology,
+       isbandstruct
        
 # ---------------------------------------------------------------------------------------- #
 
