@@ -21,7 +21,66 @@ function has_posint_expansion(n::AbstractVector{<:Integer}, M::AbstractMatrix{<:
 end
 
 """
+    calc_detailed_topology(n, B::Matrix{<:Integer}, [F::Smith=smith(B)])
+    calc_detailed_topology(n, BRS::BandRepSet)
+    calc_detailed_topology(n, sgnum::Integer, [D::Integer=3]; kwargs...) 
+
+Return whether a integer symmetry vector `n` is topologically trivial, nontrivial, or
+fragile (to the extent that this classification is symmetry-identifiable). The return value
+is a member of the Enum [`TopologyKind`](@ref) (`TRIVIAL`, `NONTRIVIAL`, or `FRAGILE`).
+
+## Implementation
+The Smith normal decomposition `F` of the EBR matrix `B` (or, equivalently, a provided
+`BandRepSet`) is used to first test whether `n` is nontrivial or not stably nontrivial
+(i.e. trivial or fragile) using [`calc_topology`](@ref).
+In the latter case, we resolve triviality vs. fragility by subsequently checking whether
+`n` has a non-negative expansion in the EBR basis using [`has_posint_expansion`](@ref).
+
+This approach is equivalent to checking whether `n` has a non-negative expansion only in
+the compatibility basis (⇒ nontrivial), in the preceding *and* in the nontopological basis
+(⇒ fragile), or in the preceding *and* in the EBR basis (⇒ trivial) - but is much faster
+(due to not solving multiple non-negative feasibility questions).
+
+If `n` is not a compatible band structure (i.e., if `isbandstruct(n, BRS) = false`), an
+error is thrown.
+"""
+function calc_detailed_topology(n::AbstractVector{<:Integer}, B::AbstractMatrix{<:Integer},
+                                F::Smith=smith(B))
+
+    coarse_topo = calc_topology(n, F)
+    if coarse_topo == TRIVIAL       # ⇒ trivial/fragile
+        trivial_m = has_posint_expansion(n, B)
+        if termination_status(trivial_m) ≠ MOI.OPTIMAL
+            # expansion in trivial-only basis elements impossible ⇒ fragile
+            return FRAGILE          # ⇒ fragile
+        else
+            return TRIVIAL          # ⇒ trivial
+        end
+    else                            # ⇒ nontrivial
+        return coarse_topo
+    end
+end
+
+function calc_detailed_topology(n::AbstractVector{<:Integer}, BRS::BandRepSet)
+    B = matrix(BRS, includes_connectivity(n, BRS))
+    return calc_detailed_topology(n, B)
+end
+
+function calc_detailed_topology(n::AbstractVector{<:Integer}, sgnum::Integer, D::Integer=3;
+            spinful::Bool=false, timereversal::Bool=true, allpaths::Bool=false)
+
+    BRS = bandreps(sgnum, D; spinful, timereversal, allpaths)
+    return calc_detailed_topology(n, BRS)
+end
+
+
+# To-be-removed-variants below:
+"""
     calc_detailed_topology(n, nontopo_M, trivial_M, M=nothing) -> ::TopologyKind
+
+!!! warning
+    This method signature is deprecated and will be removed in a future version: use 
+    [`calc_detailed_topology(::AbstractVector, ::AbstractMatrix, ::Smith)`](@ref) instead.
 
 Evaluate whether a given (valid, i.e. regular) symmetry vector represents a band-combination
 that is trivial, nontrivial, or fragile from a symmetry perspective.
@@ -43,13 +102,11 @@ function calc_detailed_topology(n::AbstractVector{<:Integer},
             nontopo_M::AbstractMatrix{<:Integer},
             trivial_M::Union{Nothing, AbstractMatrix{<:Integer}},
             M::Union{Nothing, <:AbstractMatrix{<:Integer}}=nothing)
+    # TODO: Remove this method: it is far slower than the `(n, ::Matrix, Smith)` variant
+    #       and no better (but quite a bit more complicated)
+
     # check whether expansion exists in nontopological basis
     nontopo_m = has_posint_expansion(n, nontopo_M)
-    # TODO: Maybe this should be done with `calc_topology` instead (since `cansolve` is
-    #       significantly faster than JuMP's feasibility optimization)? Subsequent assesment
-    #       of fragility should still be done with JuMP and `has_posint_expansion`. Would
-    #       not necessarily require EBR as input; we could just use the `nontopo_M` as well
-    #       (though, generally, the EBR basis would be more compact and hence better).
 
     # check to see what the termination status (i.e. result) of the optimization was 
     status′ = termination_status(nontopo_m)
@@ -79,13 +136,12 @@ function calc_detailed_topology(n::AbstractVector{<:Integer},
         throw(DomainError(status′, 
             "unexpected optimization termination status: expected OPTIMAL or INFEASIBLE"))
     end
-
-    return 
 end
 
+# TODO: Remove method
 function calc_detailed_topology(n::AbstractVector{<:Integer}, 
             nontopo_sb::SymBasis, BRS::BandRepSet, sb::Union{Nothing, SymBasis}=nothing)
-    
+
     nontopo_M = matrix(nontopo_sb)
     
     trivial_idxs, fragile_idxs = split_fragiletrivial(nontopo_sb, matrix(BRS, true))
@@ -97,19 +153,9 @@ function calc_detailed_topology(n::AbstractVector{<:Integer},
     return calc_detailed_topology(n, nontopo_M, trivial_M, M)
 end
 
-function calc_detailed_topology(n::AbstractVector{<:Integer}, sgnum::Integer, D::Integer=3;
-            spinful::Bool=false, timereversal::Bool=true, allpaths::Bool=false)
-    BRS = bandreps(sgnum, D, spinful=spinful, timereversal=timereversal, allpaths=allpaths)
-    F   = smith(matrix(BRS, true))   
-    nontopo_sb = nontopological_basis(F, BRS)
-    sb         = compatibility_basis(F, BRS)
-
-    return calc_detailed_topology(n, nontopo_sb, BRS, sb)
-end
-
 
 # -----------------------------------------------------------------------------------------
-# Trivial/nontrivial solution topology via BandRepSet and Nemo
+# Trivial/nontrivial solution topology via Smith/BandRepSet
 
 """
     $(TYPEDSIGNATURES)
@@ -149,17 +195,26 @@ function calc_topology(n::AbstractVector{<:Integer}, F::Smith)
     return is_trivial ? TRIVIAL : NONTRIVIAL
 end
 
-function calc_topology(n::AbstractVector{<:Integer}, B::Matrix{<:Integer})
-    length(n) == size(B, 1) || throw(DimensionMismatch("sizes of n and B are inconsistent"))
+function calc_topology(n::AbstractVector{<:Integer}, B::AbstractMatrix{<:Integer})
+    length(n) == size(B, 1) || throw(DimensionMismatch("incompatible dimensions of `n` and `B`"))
     return calc_topology(n, smith(B))
 end
 
 function calc_topology(n::AbstractVector{<:Integer}, BRS::BandRepSet)
-    Nirr, Nn = length(irreplabels(BRS)), length(n)
-    includedim = (Nn == Nirr+1) ? true : false
-    @assert (includedim || Nn == Nirr)
+    B = matrix(BRS, includes_connectivity(n, BRS))
+    return calc_topology(n, B)
+end
 
-    calc_topology(n, matrix(BRS, includedim))
+function includes_connectivity(n::AbstractVector{<:Integer}, BRS::BandRepSet)
+    # determine whether `n` includes the connectivity or not by comparing with size of `BRS`
+    Nirr, Nn = length(irreplabels(BRS)), length(n)
+    if Nn == Nirr+1
+        return true
+    elseif N == Nirr
+        return false
+    else 
+        error(DimensionMismatch("incompatible dimensions of `n` and `BRS`"))
+    end
 end
 
 # TODO: Remove this method (and Nemo.jl: only need for `cansolve`)
@@ -215,10 +270,10 @@ false
 """
 function isbandstruct(n::AbstractVector{<:Integer}, F::Smith)
     dᵇˢ = count(!iszero, F.SNF)
-    S   = @view F.S[:,OneTo(dᵇˢ)]     # relevant columns of S only
-    S⁻¹ = @view F.Sinv[OneTo(dᵇˢ), :] # relevant rows of S⁻¹ only
+    S̃   = @view F.S[:,OneTo(dᵇˢ)]     # relevant columns of S only
+    S̃⁻¹ = @view F.Sinv[OneTo(dᵇˢ), :] # relevant rows of S⁻¹ only
 
-    return S*(S⁻¹*n) == n
+    return S̃*(S̃⁻¹*n) == n
 end
 isbandstruct(n::AbstractVector{<:Integer}, B::Matrix{<:Integer}) = isbandstruct(n, smith(B))
 isbandstruct(n::AbstractVector{<:Integer}, BRS::BandRepSet) = isbandstruct(n, matrix(BRS, true))
