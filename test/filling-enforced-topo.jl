@@ -1,5 +1,4 @@
 using Crystalline, SymmetryBases
-using Nemo: MatrixSpace, ZZ
 using ProgressMeter
 
 # ---------------------------------------------------------------------------------------- #

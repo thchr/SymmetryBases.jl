@@ -2,6 +2,23 @@
 #                  Methods to test the topology of a given symmetry vector n               #
 # ---------------------------------------------------------------------------------------- #
 
+
+"""
+    $(TYPEDSIGNATURES)
+
+Return whether `n` includes the connectivity as an element by comparing with size of `BRS`.
+"""
+function includes_connectivity(n::AbstractVector{<:Integer}, BRS::BandRepSet)
+    Nirr, Nn = length(irreplabels(BRS)), length(n)
+    if Nn == Nirr+1
+        return true
+    elseif N == Nirr
+        return false
+    else 
+        error(DimensionMismatch("incompatible dimensions of `n` and `BRS`"))
+    end
+end
+
 """
     $(TYPEDSIGNATURES)
 
@@ -26,8 +43,8 @@ end
     calc_detailed_topology(n, sgnum::Integer, [D::Integer=3]; kwargs...) 
 
 Return whether a integer symmetry vector `n` is topologically trivial, nontrivial, or
-fragile (to the extent that this classification is symmetry-identifiable). The return value
-is a member of the Enum [`TopologyKind`](@ref) (`TRIVIAL`, `NONTRIVIAL`, or `FRAGILE`).
+fragile (to the extent that this classification is symmetry-identifiable). Returns a
+value from the Enum [`TopologyKind`](@ref) (`TRIVIAL`, `NONTRIVIAL`, or `FRAGILE`).
 
 ## Implementation
 The Smith normal decomposition `F` of the EBR matrix `B` (or, equivalently, a provided
@@ -157,25 +174,38 @@ end
 # -----------------------------------------------------------------------------------------
 # Trivial/nontrivial solution topology via Smith/BandRepSet
 
-"""
+@doc raw"""
     $(TYPEDSIGNATURES)
 
-Evaluate whether a given (valid, i.e. regular) symmetry vector `n` represents a
-band-combination that is trivial or nontrivial from a symmetry perspective, i.e. whether it
-has an integer-coefficient expansion in the elementary band representation (EBR) basis or
-not (i.e. a rational-coefficient expansion).
+Return whether a symmetry vector `n` is a band-combination that is trivial or nontrivial
+from a symmetry perspective, i.e. whether it has an integer-coefficient expansion in the
+elementary band representation (EBR) basis or not (i.e. a rational-coefficient expansion).
+Returns a value from the Enum [`TopologyKind`](@ref) (`TRIVIAL` or `NONTRIVIAL`).
 
-No distinction is made between fragile and trivial symmetry vectors (see
+No distinction is made between fragile and trivial symmetry vectors: i.e., a `TRIVIAL`
+return value may in fact be a `FRAGILE` state on more careful inspection (see
 [`calc_detailed_topology`](@ref)).
 
-The EBR basis can be provided as `::BandRepSet`, `::Matrix{<:Integer}`, `::fmpz_mat` (a
-Nemo.jl-specific type), or a `Smith` decomposition.
-The length of `n` must equal the EBR basis' number of irreps or the number of irreps plus 1
-(i.e. include the band filling).
-Evaluation of whether an integer-coefficient expansion exists is performed via Nemo.jl's
-`cansolve`.
+## Input
 
-Returns a member value of the `TopologyKind` Enum (`trivial` or `nontrivial`).
+The EBR basis can be provided as `::BandRepSet`, `::Matrix{<:Integer}`, or a `Smith`
+decomposition.
+The length of `n` must equal the EBR basis' number of irreps or the number of irreps plus 1
+(i.e. include the band connectivity).
+
+## Implementation
+
+We check whether an integer-coefficient expansion exists via the Smith normal decomposition
+of the EBR matrix ``\mathbf{B} = \mathbf{S}\boldsymbol{Λ}\mathbf{T}``. If
+
+``
+    (\mathbf{S}⁻¹\mathbf{n})_j = 0 \mod λ_j
+``
+
+for all ``j = 1, …, d^{\text{bs}}`` (``d^{\text{bs}}`` is the number of non-zero diagonal
+elements of ``\boldsymbol{\Lambda}``, i.e. the invariant factors of ``\mathbf{B}``), there
+exists a solution to ``\mathbf{B}\mathbf{c} = \mathbf{n}`` with integer coefficients 
+`c_j \in \mathbb{Z}`.
 """
 function calc_topology(n::AbstractVector{<:Integer}, F::Smith)
     isbandstruct(n, F) || error("`n` is not a physically realizable band grouping")
@@ -185,7 +215,7 @@ function calc_topology(n::AbstractVector{<:Integer}, F::Smith)
 
     # n is trivial if (S⁻¹n)ⱼ = 0 mod λⱼ for j = 1, …, dᵇˢ. This is equivalent to checking
     # whether there exists an integer coefficient expansion for `n` in the EBR basis that
-    # `F` represents (i.e., whether `cansolve(B, n) == true`) but faster.
+    # `F` represents (i.e., whether `Nemo.cansolve(B, n) == true`) but faster.
     # We do the matrix-vector product row-wise to check `mod(S⁻¹[1:dᵇˢ]*n)[i], Λ[i]) = 0`
     # for `i ∈ 1:dᵇˢ` without allocating unnecessarily
     is_trivial = all(1:dᵇˢ) do i
@@ -203,27 +233,6 @@ end
 function calc_topology(n::AbstractVector{<:Integer}, BRS::BandRepSet)
     B = matrix(BRS, includes_connectivity(n, BRS))
     return calc_topology(n, B)
-end
-
-function includes_connectivity(n::AbstractVector{<:Integer}, BRS::BandRepSet)
-    # determine whether `n` includes the connectivity or not by comparing with size of `BRS`
-    Nirr, Nn = length(irreplabels(BRS)), length(n)
-    if Nn == Nirr+1
-        return true
-    elseif N == Nirr
-        return false
-    else 
-        error(DimensionMismatch("incompatible dimensions of `n` and `BRS`"))
-    end
-end
-
-# TODO: Remove this method (and Nemo.jl: only need for `cansolve`)
-function calc_topology(n::AbstractVector{<:Integer}, Bℤ::fmpz_mat)
-    nℤ = MatrixSpace(ZZ, length(n), 1)(n)
-    # test whether an integer coefficient expansion exists for `nℤ` in the EBR basis `Bℤ`
-    solvable, _ = cansolve(Bℤ, nℤ)
-
-    return solvable ? TRIVIAL : NONTRIVIAL
 end
 
 # -----------------------------------------------------------------------------------------

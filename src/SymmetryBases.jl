@@ -4,7 +4,6 @@ using Crystalline
 using PyCall
 using PrettyTables
 using JuMP, GLPK
-using Nemo # for `calc_topology`
 using DocStringExtensions
 using LinearAlgebra
 
@@ -18,13 +17,6 @@ function __init__()
     # import the PyNormaliz library
     # https://github.com/JuliaPy/PyCall.jl#using-pycall-from-julia-modules
     copy!(PyNormaliz, pyimport("PyNormaliz"))
-
-    # try to stop Nemo spamming its welcome message on package load, following hint from 
-    # https://github.com/Nemocas/Nemo.jl/issues/817#issuecomment-613991144, unfortunately
-    # this doesn't really seem to work due to the variable not really being available at the
-    # right time (... precompilation?), see discussion in 
-    # https://discourse.julialang.org/t/redirecting-stdout-to-avoid-banners-while-import-ing/37633/11
-    ENV["NEMO_PRINT_BANNER"] = "false"
 end
 
 # ---------------------------------------------------------------------------------------- #
