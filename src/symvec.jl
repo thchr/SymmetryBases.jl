@@ -122,8 +122,8 @@ not (i.e. a rational-coefficient expansion).
 No distinction is made between fragile and trivial symmetry vectors (see
 [`calc_detailed_topology`](@ref)).
 
-The EBR basis can be provided as `::BandRepSet`, `::Matrix{<:Integer}`, or `::fmpz_mat` (a
-Nemo.jl-specific type).
+The EBR basis can be provided as `::BandRepSet`, `::Matrix{<:Integer}`, `::fmpz_mat` (a
+Nemo.jl-specific type), or a `Smith` decomposition.
 The length of `n` must equal the EBR basis' number of irreps or the number of irreps plus 1
 (i.e. include the band filling).
 Evaluation of whether an integer-coefficient expansion exists is performed via Nemo.jl's
@@ -131,19 +131,27 @@ Evaluation of whether an integer-coefficient expansion exists is performed via N
 
 Returns a member value of the `TopologyKind` Enum (`trivial` or `nontrivial`).
 """
-function calc_topology(n::AbstractVector{<:Integer}, Bℤ::fmpz_mat)
-    nℤ = MatrixSpace(ZZ, length(n), 1)(n)
-    # test whether an integer coefficient expansion exists for `nℤ` in the EBR basis `Bℤ`
-    solvable, _ = cansolve(Bℤ, nℤ)
+function calc_topology(n::AbstractVector{<:Integer}, F::Smith)
+    isbandstruct(n, F) || error("`n` is not a physically realizable band grouping")
+    
+    S⁻¹, Λ = F.Sinv, F.SNF # Λ = [λ₁, …, λ_{dᵇˢ}, 0, …, 0]
+    dᵇˢ = count(!iszero, Λ)
 
-    return solvable ? TRIVIAL : NONTRIVIAL
+    # n is trivial if (S⁻¹n)ⱼ = 0 mod λⱼ for j = 1, …, dᵇˢ. This is equivalent to checking
+    # whether there exists an integer coefficient expansion for `n` in the EBR basis that
+    # `F` represents (i.e., whether `cansolve(B, n) == true`) but faster.
+    # We do the matrix-vector product row-wise to check `mod(S⁻¹[1:dᵇˢ]*n)[i], Λ[i]) = 0`
+    # for `i ∈ 1:dᵇˢ` without allocating unnecessarily
+    is_trivial = all(1:dᵇˢ) do i
+        S⁻¹ᵢ = @view S⁻¹[i,:]
+        mod(dot(S⁻¹ᵢ, n), Λ[i]) == 0
+    end
+    return is_trivial ? TRIVIAL : NONTRIVIAL
 end
 
 function calc_topology(n::AbstractVector{<:Integer}, B::Matrix{<:Integer})
     length(n) == size(B, 1) || throw(DimensionMismatch("sizes of n and B are inconsistent"))
-    Bℤ = MatrixSpace(ZZ, size(B)...)(B)
-
-    return calc_topology(n, Bℤ)
+    return calc_topology(n, smith(B))
 end
 
 function calc_topology(n::AbstractVector{<:Integer}, BRS::BandRepSet)
@@ -152,6 +160,15 @@ function calc_topology(n::AbstractVector{<:Integer}, BRS::BandRepSet)
     @assert (includedim || Nn == Nirr)
 
     calc_topology(n, matrix(BRS, includedim))
+end
+
+# TODO: Remove this method (and Nemo.jl: only need for `cansolve`)
+function calc_topology(n::AbstractVector{<:Integer}, Bℤ::fmpz_mat)
+    nℤ = MatrixSpace(ZZ, length(n), 1)(n)
+    # test whether an integer coefficient expansion exists for `nℤ` in the EBR basis `Bℤ`
+    solvable, _ = cansolve(Bℤ, nℤ)
+
+    return solvable ? TRIVIAL : NONTRIVIAL
 end
 
 # -----------------------------------------------------------------------------------------
@@ -200,9 +217,8 @@ function isbandstruct(n::AbstractVector{<:Integer}, F::Smith)
     dᵇˢ = count(!iszero, F.SNF)
     S   = @view F.S[:,OneTo(dᵇˢ)]     # relevant columns of S only
     S⁻¹ = @view F.Sinv[OneTo(dᵇˢ), :] # relevant rows of S⁻¹ only
-    LHS = (S*S⁻¹ - I)*n
 
-    return all(==(0), LHS)
+    return S*(S⁻¹*n) == n
 end
 isbandstruct(n::AbstractVector{<:Integer}, B::Matrix{<:Integer}) = isbandstruct(n, smith(B))
 isbandstruct(n::AbstractVector{<:Integer}, BRS::BandRepSet) = isbandstruct(n, matrix(BRS, true))
