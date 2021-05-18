@@ -219,8 +219,10 @@ function calc_topology(n::AbstractVector{<:Integer}, F::Smith)
     # We do the matrix-vector product row-wise to check `mod(S⁻¹[1:dᵇˢ]*n)[i], Λ[i]) = 0`
     # for `i ∈ 1:dᵇˢ` without allocating unnecessarily
     is_trivial = all(1:dᵇˢ) do i
+        Λᵢ = Λ[i]
+        Λᵢ == 1 && return true # fast path: `mod(x, 1) = 0` for all integer `x`.
         S⁻¹ᵢ = @view S⁻¹[i,:]
-        mod(dot(S⁻¹ᵢ, n), Λ[i]) == 0
+        mod(dot(S⁻¹ᵢ, n), Λᵢ) == 0
     end
     return is_trivial ? TRIVIAL : NONTRIVIAL
 end
@@ -286,3 +288,45 @@ function isbandstruct(n::AbstractVector{<:Integer}, F::Smith)
 end
 isbandstruct(n::AbstractVector{<:Integer}, B::Matrix{<:Integer}) = isbandstruct(n, smith(B))
 isbandstruct(n::AbstractVector{<:Integer}, BRS::BandRepSet) = isbandstruct(n, matrix(BRS, true))
+
+# -----------------------------------------------------------------------------------------
+# Stable topological indices
+
+@doc raw"""
+$(TYPEDSIGNATURES)
+
+Return the symmetry indicator indices of a symmetry vector `n` as well as its nontrivial
+elementary factors, in the context of a set of elementary band representations (EBRs)
+provided either as a `BandRepSet`, an integer matrix, or a `Smith` decomposition.
+
+In detail, the method returns the nontrivial indices ``[ν_1, \ldots, ν_n]`` and the
+associated nontrivial elementary factors ``[λ_1, \ldots, λ_n]`` of the EBR basis.
+The indices ``ν_i`` are elements of a cyclic group of order ``λ_i``, i.e. 
+``ν_i ∈ \\mathbb{Z}_{λ_i} = \{0, 1, \ldots, λ_i-1\}``. 
+
+## Implementation
+
+The indices are computed using the Smith normal decomposition
+``\mathbf{B} = \mathbf{S}\boldsymbol{Λ}\mathbf{T}`` of the EBR matrix ``\mathbf{B}``. 
+Specifically, denoting by ``\mathbf{s}_i^{-1}`` the ``i``th nontrivial row of the
+``\mathbf{S}^{-1}``, we compute ``ν_i = \mathbf{s}_i^{-1}\mathbf{n}`` for symmetry vectors
+``\mathbf{n}``.
+See e.g., [H.C. Po, J. Phys. Cond. Matter **32**, 263001 (2020)](https://doi.org/10.1088/1361-648X/ab7adb).
+"""
+function indicators(n::AbstractVector{<:Integer}, F::Smith)
+    isbandstruct(n, F) || error("`n` is not a physically realizable band grouping")
+
+    idxs = findall(x -> x≠0 && x≠1, F.SNF) # find nontrivial factor groups
+    Λ    = @view F.SNF[idxs]               # nontrivial invariant factors
+    S̃⁻¹  = @view F.Sinv[idxs, :]           # nontrivial rows of S⁻¹
+
+    return mod.(S̃⁻¹*n, Λ), Λ
+end
+function indicators(n::AbstractVector{<:Integer}, B::AbstractMatrix{<:Integer})
+    length(n) == size(B, 1) || throw(DimensionMismatch("incompatible dimensions of `n` and `B`"))
+    return indicators(n, smith(B))
+end
+function indicators(n::AbstractVector{<:Integer}, BRS::BandRepSet)
+    B = matrix(BRS, includes_connectivity(n, BRS))
+    return indicators(n, B)
+end
