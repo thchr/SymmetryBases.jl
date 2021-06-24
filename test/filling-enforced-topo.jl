@@ -13,7 +13,7 @@ for sgnum in sgnums
     println("SG ", sgnum)
     # prep-work to get Hilbert bases etc
     BRS  = bandreps(sgnum, spinful=false, timereversal=timereversal)
-    B    = Crystalline.matrix(BRS, true) # Matrix with columns of EBRs
+    B    = Crystalline.matrix(BRS; includedim=true) # Matrix with columns of EBRs
     isℤ₁ = classification(BRS) == "Z₁"
     if isℤ₁
         print("── trivial symmetry indicator group") 

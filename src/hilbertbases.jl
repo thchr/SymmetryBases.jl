@@ -83,8 +83,8 @@ for f in (:compatibility_basis, :nontopological_basis)
                     algorithm::String="DualMode", verbose::Bool=false,
                     spinful::Bool=false, timereversal::Bool=true, allpaths::Bool=false)
             BRS = bandreps(sgnum, D; allpaths=allpaths, spinful=spinful, timereversal=timereversal)
-            B   = matrix(BRS, true) # Matrix with columns of EBRs.
-            F   = smith(B)          # Smith normal decomposition of B
+            B   = matrix(BRS; includedim=true) # Matrix with columns of EBRs.
+            F   = smith(B)                     # Smith normal decomposition of B
 
             return $f(F, BRS, algorithm=algorithm, verbose=verbose), BRS
         end
@@ -98,10 +98,10 @@ Compute the trivial and fragile indices of a _nontopological_ `SymBasis`, `sb_no
 determining whether or not each has a positive-coefficient expansion in elementary band
 representations (EBRs).
 The EBRs are given either through a `BRS::BandRepSet` or through its matrix representation
-`B = matrix(BRS, includedim)`.
+`B = matrix(BRS; includedim = true)`.
 
 Note that both `sb_nontopo` and `B` must reference the same output space: in other words, if
-the `sb_nontopo` includes a filling element, `includedim` must set to `true` for `B`; 
+the `sb_nontopo` includes a filling element, `includedim` must be set to `true` for `B`; 
 otherwise `false`.
 
 Returns trivial indices, `trivial_idxs`, and fragile indices, `fragile_idxs`, into the basis
@@ -143,7 +143,7 @@ function split_fragiletrivial(sb_nontopo::SymBasis, BRS::BandRepSet)
     @assert (includedim || Nrows == Nirr)
     @assert Nirr == length(first(BRS)) "Non-equal number of irreps in SymBasis and BandRepSet"    
 
-    split_fragiletrivial(sb_nontopo, matrix(BRS, includedim))
+    split_fragiletrivial(sb_nontopo, matrix(BRS; includedim=includedim))
 end
 
 # Footnotes:

@@ -12,7 +12,7 @@ for sgnum in 1:230
     !has_tr && sgnum ∈ (83, 174, 175, 176) && continue # computationally unfeasible
     print("SG ", sgnum)
     brs = bandreps(sgnum, 3, timereversal=has_tr, spinful=true)
-    A = matrix(brs, true)
+    A = matrix(brs; includedim=true)
 
     # compute Hilbert basis for {AI+F} with conditions imposed either directly via EBR basis
     # or via a Smith normal decomposition

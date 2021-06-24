@@ -14,7 +14,7 @@ has_tr = true
 for sgnum in 1:230
     println("SG$sgnum")
     brs = bandreps(sgnum, 3, timereversal=has_tr, allpaths=true)
-    B = matrix(brs, true)
+    B = matrix(brs; includedim=true)
     Nᴱᴮᴿ = size(B, 2)
     for (idx, b) in enumerate(collect(eachcol(B)))
         idxs = vcat(1:idx-1, idx+1:Nᴱᴮᴿ)

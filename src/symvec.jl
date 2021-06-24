@@ -79,7 +79,7 @@ function calc_detailed_topology(n::AbstractVector{<:Integer}, B::AbstractMatrix{
 end
 
 function calc_detailed_topology(n::AbstractVector{<:Integer}, BRS::BandRepSet)
-    B = matrix(BRS, includes_connectivity(n, BRS))
+    B = matrix(BRS; includedim=includes_connectivity(n, BRS))
     return calc_detailed_topology(n, B)
 end
 
@@ -161,7 +161,7 @@ function calc_detailed_topology(n::AbstractVector{<:Integer},
 
     nontopo_M = matrix(nontopo_sb)
     
-    trivial_idxs, fragile_idxs = split_fragiletrivial(nontopo_sb, matrix(BRS, true))
+    trivial_idxs, fragile_idxs = split_fragiletrivial(nontopo_sb, matrix(BRS; includedim=true))
     can_be_fragile = !isempty(fragile_idxs)
     trivial_M = can_be_fragile ? (@view nontopo_M[:, trivial_idxs]) : nothing
     
@@ -233,7 +233,7 @@ function calc_topology(n::AbstractVector{<:Integer}, B::AbstractMatrix{<:Integer
 end
 
 function calc_topology(n::AbstractVector{<:Integer}, BRS::BandRepSet)
-    B = matrix(BRS, includes_connectivity(n, BRS))
+    B = matrix(BRS; includedim=includes_connectivity(n, BRS))
     return calc_topology(n, B)
 end
 
@@ -287,7 +287,7 @@ function isbandstruct(n::AbstractVector{<:Integer}, F::Smith)
     return S̃*(S̃⁻¹*n) == n
 end
 isbandstruct(n::AbstractVector{<:Integer}, B::Matrix{<:Integer}) = isbandstruct(n, smith(B))
-isbandstruct(n::AbstractVector{<:Integer}, BRS::BandRepSet) = isbandstruct(n, matrix(BRS, true))
+isbandstruct(n::AbstractVector{<:Integer}, BRS::BandRepSet) = isbandstruct(n, matrix(BRS; includedim=true))
 
 # -----------------------------------------------------------------------------------------
 # Stable topological indices
@@ -327,6 +327,6 @@ function indicators(n::AbstractVector{<:Integer}, B::AbstractMatrix{<:Integer})
     return indicators(n, smith(B))
 end
 function indicators(n::AbstractVector{<:Integer}, BRS::BandRepSet)
-    B = matrix(BRS, includes_connectivity(n, BRS))
+    B = matrix(BRS; includedim=includes_connectivity(n, BRS))
     return indicators(n, B)
 end

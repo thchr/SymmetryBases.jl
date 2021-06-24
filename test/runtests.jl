@@ -10,10 +10,10 @@ algorithm = "DualMode" # DualMode or PrimalMode
 for sgnum in 1:MAX_SGNUM[3]
     BRS = bandreps(sgnum, spinful=spinful, timereversal=timereversal)
     
-    B = matrix(BRS, true)        # Matrix with columns of EBRs.
+    B = matrix(BRS; includedim=true) # Matrix with columns of EBRs.
     
-    F   = Crystalline.smith(B)   # Smith normal decomposition of B
-    dᵇˢ = count(!iszero, F.SNF)  # "Dimensionality" of band structure
+    F   = Crystalline.smith(B)       # Smith normal decomposition of B
+    dᵇˢ = count(!iszero, F.SNF)      # "Dimensionality" of band structure
     Nⁱʳʳ, Nᴱᴮᴿ = size(B)
 
     # Print some simple stuff early on, to indicate that a calculation is running
