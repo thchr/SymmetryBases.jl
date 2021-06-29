@@ -104,8 +104,8 @@ Note that both `sb_nontopo` and `B` must reference the same output space: in oth
 the `sb_nontopo` includes a filling element, `includedim` must be set to `true` for `B`; 
 otherwise `false`.
 
-Returns trivial indices, `trivial_idxs`, and fragile indices, `fragile_idxs`, into the basis
-vectors in `sb_nontopo`.
+Returns trivial indices `trivial` and fragile indices `fragile` (indexing into the basis
+vectors in `sb_nontopo`) as a named tuple with the corresponding field names.
 """
 function split_fragiletrivial(sb_nontopo::SymBasis, B::AbstractMatrix)
     if sb_nontopo.compatbasis
@@ -130,20 +130,21 @@ function split_fragiletrivial(sb_nontopo::SymBasis, B::AbstractMatrix)
         elseif status == MOI.INFEASIBLE  # No feasible solution exists   ⇒ fragile!
             push!(fragile_idxs, j)
         else
-            throw("Unexpected termination status $status")
+            error("Unexpected termination status $status")
         end
     end
 
-    return trivial_idxs, fragile_idxs
+    return (trivial=trivial_idxs, fragile=fragile_idxs)
 end
 function split_fragiletrivial(sb_nontopo::SymBasis, BRS::BandRepSet)
     Nirr, Nrows = length(irreplabels(sb_nontopo)), length(first(sb_nontopo))
     includedim = (Nrows == Nirr+1) ? true : false
 
-    @assert (includedim || Nrows == Nirr)
-    @assert Nirr == length(first(BRS)) "Non-equal number of irreps in SymBasis and BandRepSet"    
+    if !includedim && Nrows ≠ Nirr
+        error(DimensionMismatch("internal dimensions of `sb_nontopo` are inconsistent"))
+    end
 
-    split_fragiletrivial(sb_nontopo, matrix(BRS; includedim=includedim))
+    return split_fragiletrivial(sb_nontopo, matrix(BRS; includedim=includedim))
 end
 
 # Footnotes:
