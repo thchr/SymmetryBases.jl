@@ -330,3 +330,56 @@ function indicators(n::AbstractVector{<:Integer}, BRS::BandRepSet)
     B = matrix(BRS; includedim=includes_connectivity(n, BRS))
     return indicators(n, B)
 end
+
+# -----------------------------------------------------------------------------------------
+# Decomposition in EBRs
+
+@doc raw"""
+$(TYPEDSIGNATURES)
+
+Return a decomposition of `n` in the columns of `B` as expansion coefficients `c`. I.e.,
+denoting by ``\mathbf{b}_i`` the columns of `B` and by ``c_i`` the elements of `c`, we find `c` s.t.:
+
+``\mathbf{n} = \sum_i c_i\mathbf{b}_i``
+
+Depending on the topology of `n`, the coefficients of `c` have the following attributes:
+- `TRIVIAL`: `c` is a vector of non-negative integers,
+- `FRAGILE`: `c` is a vector of integers,
+- `NONTRIVIAL`: `c` is a vector of rationals.
+
+In all cases, `c` is returned as a `Vector{Float64}`.
+"""
+function decompose(
+            n::AbstractVector{<:Integer},
+            B::AbstractMatrix{<:Integer},
+            F::Smith=smith(B))
+
+    isbandstruct(n, F) || error("`n` is not a physically realizable band grouping")
+    
+    topo = calc_topology(n, F)
+    if calc_topology(n, F) === TRIVIAL
+        # then an integer expansion must exist; find out if trivial or fragile
+        m = has_posint_expansion(n, B)
+        if termination_status(m) == MOI.OPTIMAL # ⇒ trivial
+            return value.(m[:c]::Vector{JuMP.VariableRef}) # coefficients
+        end
+    end
+
+    # `n` is either fragile or nontrivial: in either case, the best we can do is return
+    # a possible decomposition using the generalized inverse of A
+    Nⁱʳʳ, Nᴱᴮᴿ = size(F.S, 1), size(F.T, 1)
+    Λᵍ = diagm(Nⁱʳʳ, Nᴱᴮᴿ, map(λ -> iszero(λ) ? 0.0 : inv(λ), F.SNF))'
+    Bᵍ = F.Tinv * Λᵍ * F.Sinv
+    c = Bᵍ*n # general solution is Aᵍn + (I-AᵍA)y w/ y∈ℤᵈ cf. Ben & Israel book, p. 98
+    # TODO: Work harder to get some notion of "minimal" coefficients by involving the
+    #       nullspace (I-AᵍA)y? E.g. could we optimize in least squares fashion over `c`?
+
+    res = norm(B*c - n)
+    res > Crystalline.DEFAULT_ATOL && error("nonzero residual $res of solution c=$c")
+
+    return c
+end
+function decompose(n::AbstractVector{<:Integer}, BRS::BandRepSet)
+    B = matrix(BRS; includedim=includes_connectivity(n, BRS))
+    return decompose(n, B)
+end

@@ -24,7 +24,7 @@ for sgnum in 1:230
         if termination_status(m) == MOI.OPTIMAL # ← EBR is not irreducible in EBR basis
             println(idx)
             print("      EBR $idx decomposes via EBRs ")
-            cs′ = value.(m[:c])
+            cs′ = value.(m[:c]::Vector{JuMP.VariableRef})
             cs′idxs = findall(≠(0), cs′)
             mults = cs′[cs′idxs]
             cs′idxs .+= ifelse.(cs′idxs .≥ idx, 1, 0) # correct for removed index
