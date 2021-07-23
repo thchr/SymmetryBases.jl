@@ -338,7 +338,8 @@ end
 $(TYPEDSIGNATURES)
 
 Return a decomposition of `n` in the columns of `B` as expansion coefficients `c`. I.e.,
-denoting by ``\mathbf{b}_i`` the columns of `B` and by ``c_i`` the elements of `c`, we find `c` s.t.:
+denoting by ``\mathbf{b}_i`` the columns of `B` and by ``c_i`` the elements of `c`, we find
+`c` s.t.:
 
 ``\mathbf{n} = \sum_i c_i\mathbf{b}_i``
 
@@ -347,7 +348,9 @@ Depending on the topology of `n`, the coefficients of `c` have the following att
 - `FRAGILE`: `c` is a vector of integers,
 - `NONTRIVIAL`: `c` is a vector of rationals.
 
-In all cases, `c` is returned as a `Vector{Float64}`.
+The returned decomposition coefficients `c` are chosen to be the least norm coefficients
+(under the constraint that the coefficients belong to the noted integer/rational domains).
+In all cases, `c` is returned as a `Vector{Float64}`. 
 """
 function decompose(
             n::AbstractVector{<:Integer},
@@ -366,16 +369,22 @@ function decompose(
     end
 
     # `n` is either fragile or nontrivial: in either case, the best we can do is return
-    # a possible decomposition using the generalized inverse of A
+    # a possible decomposition using the generalized inverse of B
     Nⁱʳʳ, Nᴱᴮᴿ = size(F.S, 1), size(F.T, 1)
-    Λᵍ = diagm(Nⁱʳʳ, Nᴱᴮᴿ, map(λ -> iszero(λ) ? 0.0 : inv(λ), F.SNF))'
-    Bᵍ = F.Tinv * Λᵍ * F.Sinv
-    c = Bᵍ*n # general solution is Aᵍn + (I-AᵍA)y w/ y∈ℤᵈ cf. Ben & Israel book, p. 98
-    # TODO: Work harder to get some notion of "minimal" coefficients by involving the
-    #       nullspace (I-AᵍA)y? E.g. could we optimize in least squares fashion over `c`?
-
+    Λᵍ = diagm(Nⁱʳʳ, Nᴱᴮᴿ, map(λ -> iszero(λ) ? 0.0 : inv(λ), F.SNF))' # TODO: avoid constructing full matrix
+    Bᵍ = F.Tinv * Λᵍ * F.Sinv # generalized inverse w/ rational coefficients
+    # the general solution is Bᵍn + (I-BᵍB)y w/ y∈ℤᵈ cf. Ben & Israel book, p. 98. Since
+    # Bᵍ generates the column space while (I-BᵍB) generates the null space, the two
+    # contributions are orthogonal; so the norm of the solution is ‖Aᵍn‖ + ‖(I-AᵍA)y‖.
+    # Thus, to get the least norm solution, we simply drop the null space term - this is
+    # basically following the usual reasoning for _real_ least norm least squares solutions
+    # (see e.g. https://math.stackexchange.com/a/2253614/)
+    c = Bᵍ*n 
+    
+    # check that the coefficients indeed solve the system exactly, not just as a least
+    # squares solution
     res = norm(B*c - n)
-    res > Crystalline.DEFAULT_ATOL && error("nonzero residual $res of solution c=$c")
+    res < Crystalline.DEFAULT_ATOL || error("nonzero residual $res of solution c=$c")
 
     return c
 end
