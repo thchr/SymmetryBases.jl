@@ -23,8 +23,8 @@ function SymBasis(nsᴴ::AbstractMatrix{Int}, BRS::BandRepSet, compatbasis::Bool
 end
 
 # accessors
-matrix(sb::SymBasis) = hcat(sb.symvecs...)
 parent(sb::SymBasis) = sb.symvecs
+matrix(sb::SymBasis) = reduce(hcat, parent(sb)) # TODO: rename `stack` as in Bravais?
 num(sb::SymBasis)    = sb.sgnum
 irreplabels(sb::SymBasis) = sb.irlabs
 klabels(sb::SymBasis)     = sb.klabs
