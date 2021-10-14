@@ -24,7 +24,7 @@ end
 
 # accessors
 matrix(sb::SymBasis) = hcat(sb.symvecs...)
-vecs(sb::SymBasis)   = sb.symvecs
+parent(sb::SymBasis) = sb.symvecs
 num(sb::SymBasis)    = sb.sgnum
 irreplabels(sb::SymBasis) = sb.irlabs
 klabels(sb::SymBasis)     = sb.klabs
@@ -33,8 +33,8 @@ istimeinvar(sb::SymBasis) = sb.timeinvar
 fillings(sb::SymBasis)    = [nᴴ[end] for nᴴ in sb.symvecs]
 
 # define the AbstractArray interface for SymBasis
-size(sb::SymBasis) = (length(vecs(sb)),)
-getindex(sb::SymBasis, keys...) = vecs(sb)[keys...]
+size(sb::SymBasis) = (length(parent(sb)),)
+getindex(sb::SymBasis, keys...) = parent(sb)[keys...]
 IndexStyle(::SymBasis) = IndexLinear()
 
 # ---------------------------------------------------------------------------------------- #

@@ -7,8 +7,8 @@ using JuMP, GLPK
 using DocStringExtensions
 using LinearAlgebra
 
-import Base: OneTo, show, size, getindex, firstindex, lastindex, IndexStyle, length
-import Crystalline: matrix, vecs, num, irreplabels, klabels, isspinful, istimeinvar
+import Base: OneTo, show, size, getindex, firstindex, lastindex, IndexStyle, length, parent
+import Crystalline: matrix, num, irreplabels, klabels, isspinful, istimeinvar
 
 # ---------------------------------------------------------------------------------------- #
 
