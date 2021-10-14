@@ -107,20 +107,22 @@ otherwise `false`.
 Returns trivial indices `trivial` and fragile indices `fragile` (indexing into the basis
 vectors in `sb_nontopo`) as a named tuple with the corresponding field names.
 """
-function split_fragiletrivial(sb_nontopo::SymBasis, B::AbstractMatrix)
-    if sb_nontopo.compatbasis
-        throw(DomainError(sb_nontopo, "provided `SymBasis` must have `compatbasis=false`"))
-    end
-    # Every vector of nsᴴ_nontopo that has a non-negative integer coefficient expansion in
-    # EBRs, i.e. in B, represents a trivial basis element. All other elements represent 
-    # fragile basis elements. We can just test whether such a solution exists through
-    # constrained optimization, and then partition into trivial and fragile categories
+function split_fragiletrivial(ns::AbstractVector{<:AbstractVector{<:Integer}},
+                              B::AbstractMatrix)
+    # Every (not-nontrivial) vector of `ns` that has a non-negative integer coefficient
+    # expansion in EBRs, i.e. in `B`, represents a trivial basis element. All other elements
+    # represent fragile basis elements. We can just test whether such a solution exists
+    # through constrained optimization, and then partition into trivial and fragile 
+    # categories
+    # NOTE: This method explicitly assumes that it is _never_ provided any nontrivial
+    #       symmetry vectors. If it is, it will misclassify them as fragile.
+    # TODO: Maybe just split into all variants, including nontrivial?
     Nᴱᴮᴿ = size(B, 2)
     trivial_idxs = Int[]; fragile_idxs = Int[]
-    for (j, nᴴ_nontopoʲ) in enumerate(sb_nontopo)
+    for (j, nʲ) in enumerate(ns)
         m = Model(GLPK.Optimizer)
         @variable(m, c[1:Nᴱᴮᴿ] >= 0, Int)
-        @constraint(m, B*c .== nᴴ_nontopoʲ)
+        @constraint(m, B*c .== nʲ)
         optimize!(m)
 
         # Check to see what the termination status (i.e. result) of the optimization was 
@@ -135,6 +137,12 @@ function split_fragiletrivial(sb_nontopo::SymBasis, B::AbstractMatrix)
     end
 
     return (trivial=trivial_idxs, fragile=fragile_idxs)
+end
+function split_fragiletrivial(sb_nontopo::SymBasis, B::AbstractMatrix)
+    if sb_nontopo.compatbasis
+        throw(DomainError(sb_nontopo, "provided `SymBasis` must have `compatbasis=false`"))
+    end
+    return split_fragiletrivial(sb_nontopo, B)
 end
 function split_fragiletrivial(sb_nontopo::SymBasis, BRS::BandRepSet)
     Nirr, Nrows = length(irreplabels(sb_nontopo)), length(first(sb_nontopo))
