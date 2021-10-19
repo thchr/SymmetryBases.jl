@@ -16,7 +16,11 @@ const PyNormaliz = PyNULL()
 function __init__() 
     # import the PyNormaliz library
     # https://github.com/JuliaPy/PyCall.jl#using-pycall-from-julia-modules
-    copy!(PyNormaliz, pyimport("PyNormaliz"))
+    try
+        copy!(PyNormaliz, pyimport("PyNormaliz"))
+    catch
+        @warn "PyNormaliz could not be imported: some functionality of SymmetryBases.jl is nonfunctional"
+    end
 end
 
 # ---------------------------------------------------------------------------------------- #
