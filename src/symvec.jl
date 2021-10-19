@@ -2,6 +2,9 @@
 #                  Methods to test the topology of a given symmetry vector n               #
 # ---------------------------------------------------------------------------------------- #
 
+function _throw_incompatible_or_nonphysical()
+    error(DomainError(n, "`n` is not a physically realizable band grouping"))
+end
 
 """
     $(TYPEDSIGNATURES)
@@ -38,8 +41,8 @@ function has_posint_expansion(n::AbstractVector{<:Integer}, M::AbstractMatrix{<:
 end
 
 """
-    calc_detailed_topology(n, B::Matrix{<:Integer}, [F::Smith=smith(B)])
-    calc_detailed_topology(n, BRS::BandRepSet)
+    calc_detailed_topology(n, B::Matrix{<:Integer}, [F::Smith=smith(B)]; allow_nonphysical)
+    calc_detailed_topology(n, BRS::BandRepSet; allow_nonphysical)
     calc_detailed_topology(n, sgnum::Integer, [D::Integer=3]; kwargs...) 
 
 Return whether a integer symmetry vector `n` is topologically trivial, nontrivial, or
@@ -60,11 +63,16 @@ the compatibility basis (⇒ nontrivial), in the preceding *and* in the nontopol
 
 If `n` is not a compatible band structure (i.e., if `isbandstruct(n, BRS) = false`), an
 error is thrown.
+The keyword argument `allow_nonphysical` allows disabling the check for non-negativity of
+symmetry content.
 """
-function calc_detailed_topology(n::AbstractVector{<:Integer}, B::AbstractMatrix{<:Integer},
-                                F::Smith=smith(B))
+function calc_detailed_topology(
+            n::AbstractVector{<:Integer},
+            B::AbstractMatrix{<:Integer},
+            F::Smith=smith(B);
+            allow_nonphysical::Bool=false)
 
-    coarse_topo = calc_topology(n, F)
+    coarse_topo = calc_topology(n, F; allow_nonphysical) # checks `isbandstruct` as well
     if coarse_topo == TRIVIAL       # ⇒ trivial/fragile
         trivial_m = has_posint_expansion(n, B)
         if termination_status(trivial_m) ≠ MOI.OPTIMAL
@@ -78,16 +86,22 @@ function calc_detailed_topology(n::AbstractVector{<:Integer}, B::AbstractMatrix{
     end
 end
 
-function calc_detailed_topology(n::AbstractVector{<:Integer}, BRS::BandRepSet)
+function calc_detailed_topology(n::AbstractVector{<:Integer}, BRS::BandRepSet; kws...)
     B = matrix(BRS; includedim=includes_connectivity(n, BRS))
-    return calc_detailed_topology(n, B)
+    return calc_detailed_topology(n, B; kws...)
 end
 
-function calc_detailed_topology(n::AbstractVector{<:Integer}, sgnum::Integer, D::Integer=3;
-            spinful::Bool=false, timereversal::Bool=true, allpaths::Bool=false)
+function calc_detailed_topology(
+            n::AbstractVector{<:Integer},
+            sgnum::Integer,
+            D::Integer=3;
+            spinful::Bool=false,
+            timereversal::Bool=true,
+            allpaths::Bool=false,
+            allow_nonphysical::Bool=false)
 
     BRS = bandreps(sgnum, D; spinful, timereversal, allpaths)
-    return calc_detailed_topology(n, BRS)
+    return calc_detailed_topology(n, BRS; allow_nonphysical)
 end
 
 
@@ -156,8 +170,11 @@ function calc_detailed_topology(n::AbstractVector{<:Integer},
 end
 
 # TODO: Remove method
-function calc_detailed_topology(n::AbstractVector{<:Integer}, 
-            nontopo_sb::SymBasis, BRS::BandRepSet, sb::Union{Nothing, SymBasis}=nothing)
+function calc_detailed_topology(
+            n::AbstractVector{<:Integer}, 
+            nontopo_sb::SymBasis,
+            BRS::BandRepSet,
+            sb::Union{Nothing, SymBasis}=nothing)
 
     nontopo_M = matrix(nontopo_sb)
     
@@ -174,8 +191,8 @@ end
 # -----------------------------------------------------------------------------------------
 # Trivial/nontrivial solution topology via Smith/BandRepSet
 
-@doc raw"""
-    $(TYPEDSIGNATURES)
+@doc """
+$(TYPEDSIGNATURES)
 
 Return whether a symmetry vector `n` is a band-combination that is trivial or nontrivial
 from a symmetry perspective, i.e. whether it has an integer-coefficient expansion in the
@@ -196,19 +213,23 @@ The length of `n` must equal the EBR basis' number of irreps or the number of ir
 ## Implementation
 
 We check whether an integer-coefficient expansion exists via the Smith normal decomposition
-of the EBR matrix ``\mathbf{B} = \mathbf{S}\boldsymbol{Λ}\mathbf{T}``. If
+of the EBR matrix ``\\mathbf{B} = \\mathbf{S}\\boldsymbol{\\Lambda}\\mathbf{T}``. If
 
-``
-    (\mathbf{S}⁻¹\mathbf{n})_j = 0 \mod λ_j
-``
+```math
+    (\\mathbf{S}^{-1}\\mathbf{n})_j = 0 \\mod \\lambda_j
+```
 
-for all ``j = 1, …, d^{\text{bs}}`` (``d^{\text{bs}}`` is the number of non-zero diagonal
-elements of ``\boldsymbol{\Lambda}``, i.e. the invariant factors of ``\mathbf{B}``), there
-exists a solution to ``\mathbf{B}\mathbf{c} = \mathbf{n}`` with integer coefficients 
-`c_j \in \mathbb{Z}`.
+for all ``j = 1, \\ldots, d^{\\text{bs}}`` (``d^{\\text{bs}}`` is the number of non-zero
+diagonal elements of ``\\boldsymbol{\\Lambda}``, i.e. the invariant factors of
+``\\mathbf{B}``), there exists a solution to ``\\mathbf{B}\\mathbf{c} = \\mathbf{n}`` with
+integer coefficients ``c_j \\in \\mathbb{Z}``.
 """
-function calc_topology(n::AbstractVector{<:Integer}, F::Smith)
-    isbandstruct(n, F) || error("`n` is not a physically realizable band grouping")
+function calc_topology(
+            n::AbstractVector{<:Integer},
+            F::Smith;
+            allow_nonphysical::Bool=false)
+
+    isbandstruct(n, F; allow_nonphysical) || _throw_incompatible_or_nonphysical()
     
     S⁻¹, Λ = F.Sinv, F.SNF # Λ = [λ₁, …, λ_{dᵇˢ}, 0, …, 0]
     dᵇˢ = count(!iszero, Λ)
@@ -227,26 +248,32 @@ function calc_topology(n::AbstractVector{<:Integer}, F::Smith)
     return is_trivial ? TRIVIAL : NONTRIVIAL
 end
 
-function calc_topology(n::AbstractVector{<:Integer}, B::AbstractMatrix{<:Integer})
+function calc_topology(n::AbstractVector{<:Integer}, B::AbstractMatrix{<:Integer}; kws...)
     length(n) == size(B, 1) || throw(DimensionMismatch("incompatible dimensions of `n` and `B`"))
-    return calc_topology(n, smith(B))
+    return calc_topology(n, smith(B); kws...)
 end
 
-function calc_topology(n::AbstractVector{<:Integer}, BRS::BandRepSet)
+function calc_topology(n::AbstractVector{<:Integer}, BRS::BandRepSet; kws...)
     B = matrix(BRS; includedim=includes_connectivity(n, BRS))
-    return calc_topology(n, B)
+    return calc_topology(n, B; kws...)
 end
 
 # -----------------------------------------------------------------------------------------
 # test whether a band grouping respects compatibility relations, i.e. are in {BS}
 # (another way would be to use a `SymBasis` and `has_posint_expansion` to test whether and
 # integer conical combination exists; but that is _much_ slower (~30-150× at least))
-"""
+@doc """
 $(TYPEDSIGNATURES)
 
 Test whether a symmetry vector `n` is a valid band grouping, i.e. whether it fulfils all
 compatibility relations in the Brillouin zone and is non-negative. That is, test whether
 `n` belong to the set of physical band structures {BS}.
+
+## Keyword arguments
+
+- `allow_nonphysical :: Bool=false`: if `true`, disables non-negativity check.
+  This can be relevant if the symmetry vector contains negative content that may
+  nevertheless respect the compatibility relations in a strictly algebraic sense.
 
 ## Implementation
 
@@ -255,15 +282,16 @@ Belongingness to {BS} is tested by comparing to a set of elementary band represe
 decomposition.
 A symmetry vector ``\\mathbf{n}`` is in {BS} if
 
-``
-\\tilde{\\mathbf{S}}\\tilde{\\mathbf{S}}^{-1}\\mathbf{n} = \\mathbf{n}
-``
+```math
+    \\tilde{\\mathbf{S}}\\tilde{\\mathbf{S}}^{-1}\\mathbf{n} = \\mathbf{n}
+```
 
 where ``\\tilde{\\mathbf{S}}`` (``\\tilde{\\mathbf{S}}^{-1}``) denotes the nonsingular
 columns (rows) of ``\\mathbf{S}`` (``\\mathbf{S}^{-1}``) in the Smith normal decomposition
 of the EBR matrix ``\\mathbf{A} = \\mathbf{S}\\boldsymbol{\\Lambda}\\mathbf{T}``.
 
-## Example
+## Examples
+
 ```julia-repl
 julia> sb, brs = compatibility_basis(22, 3); # from Crystalline.jl
 julia> n = sb[1];
@@ -274,47 +302,68 @@ true
 
 # test an invalid symmetry vector
 julia> n′ = copy(n);
-julia> n′[1] += 1;              # invalid modification
+julia> n′[1] += 1;                   # invalid modification
 julia> isbandstruct(n′, brs)
 false
+
+# test a symmetry vector with negative content
+julia> n′′ = sb[1] + sb[2] - sb[3];  # contains negative elements
+julia> isbandstruct(n′′, brs)
+false
+julia> isbandstruct(n′′, brs; allow_nonphysical=true)
+true
 ```
 """
-function isbandstruct(n::AbstractVector{<:Integer}, F::Smith)
+function isbandstruct(
+            n::AbstractVector{<:Integer},
+            F::Smith;
+            allow_nonphysical::Bool=false)
+
+    # check non-negativity
+    (allow_nonphysical || all(≥(0), n)) || return false
+
+    # check compatibility relations
     dᵇˢ = count(!iszero, F.SNF)
     S̃   = @view F.S[:,OneTo(dᵇˢ)]     # relevant columns of S only
     S̃⁻¹ = @view F.Sinv[OneTo(dᵇˢ), :] # relevant rows of S⁻¹ only
-
     return S̃*(S̃⁻¹*n) == n
 end
-isbandstruct(n::AbstractVector{<:Integer}, B::Matrix{<:Integer}) = isbandstruct(n, smith(B))
-isbandstruct(n::AbstractVector{<:Integer}, BRS::BandRepSet) = isbandstruct(n, matrix(BRS; includedim=true))
+isbandstruct(n::AbstractVector{<:Integer}, B::Matrix{<:Integer}; kws...) = isbandstruct(n, smith(B); kws...)
+isbandstruct(n::AbstractVector{<:Integer}, BRS::BandRepSet; kws...) = isbandstruct(n, matrix(BRS; includedim=true); kws...)
 
 # -----------------------------------------------------------------------------------------
 # Stable topological indices
 
-@doc raw"""
+@doc """
 $(TYPEDSIGNATURES)
 
 Return the symmetry indicator indices of a symmetry vector `n` as well as its nontrivial
 elementary factors, in the context of a set of elementary band representations (EBRs)
 provided either as a `BandRepSet`, an integer matrix, or a `Smith` decomposition.
 
-In detail, the method returns the nontrivial indices ``[ν_1, \ldots, ν_n]`` and the
-associated nontrivial elementary factors ``[λ_1, \ldots, λ_n]`` of the EBR basis.
-The indices ``ν_i`` are elements of a cyclic group of order ``λ_i``, i.e. 
-``ν_i ∈ \\mathbb{Z}_{λ_i} = \{0, 1, \ldots, λ_i-1\}``. 
+In detail, the method returns the nontrivial indices ``[\\nu_1, \\ldots, \\nu_n]`` and the
+associated nontrivial elementary factors ``[\\lambda_1, \\ldots, \\lambda_n]`` of the EBR basis.
+The indices ``\\nu_i`` are elements of a cyclic group of order ``\\lambda_i``, i.e. 
+``\\nu_i ∈ \\mathbb{Z}_{\\lambda_i} = \\{0, 1, \\ldots, \\lambda_i-1\\}``.
+
+The keyword argument `allow_nonphysical` is forwarded to [`isbandstruct`](@ref).
 
 ## Implementation
 
-The indices are computed using the Smith normal decomposition
-``\mathbf{B} = \mathbf{S}\boldsymbol{Λ}\mathbf{T}`` of the EBR matrix ``\mathbf{B}``. 
-Specifically, denoting by ``\mathbf{s}_i^{-1}`` the ``i``th nontrivial row of the
-``\mathbf{S}^{-1}``, we compute ``ν_i = \mathbf{s}_i^{-1}\mathbf{n}`` for symmetry vectors
-``\mathbf{n}``.
-See e.g., [H.C. Po, J. Phys. Cond. Matter **32**, 263001 (2020)](https://doi.org/10.1088/1361-648X/ab7adb).
+The indices are computed using the Smith normal decomposition ``\\mathbf{B} = \\mathbf{S}
+\\boldsymbol{\\Lambda}\\mathbf{T}`` of the EBR matrix ``\\mathbf{B}``. 
+Specifically, denoting by ``\\mathbf{s}_i^{-1}`` the ``i``th nontrivial row of
+``\\mathbf{S}^{-1}``, the symmetry indicator topological indices of a symmetry vector
+``\\mathbf{n}`` are computed as ``\\nu_i = \\mathbf{s}_i^{-1}\\mathbf{n}``.[^HCP]
+
+[^HCP]: [H.C. Po, J. Phys. Cond. Matter **32**, 263001 (2020)](https://doi.org/10.1088/1361-648X/ab7adb).
 """
-function indicators(n::AbstractVector{<:Integer}, F::Smith)
-    isbandstruct(n, F) || error("`n` is not a physically realizable band grouping")
+function indicators(
+            n::AbstractVector{<:Integer},
+            F::Smith;
+            allow_nonphysical::Bool=false)
+
+    isbandstruct(n, F; allow_nonphysical) || _throw_incompatible_or_nonphysical()
 
     idxs = findall(x -> x≠0 && x≠1, F.SNF) # find nontrivial factor groups
     Λ    = @view F.SNF[idxs]               # nontrivial invariant factors
@@ -322,26 +371,26 @@ function indicators(n::AbstractVector{<:Integer}, F::Smith)
 
     return mod.(S̃⁻¹*n, Λ), Λ
 end
-function indicators(n::AbstractVector{<:Integer}, B::AbstractMatrix{<:Integer})
+function indicators(n::AbstractVector{<:Integer}, B::AbstractMatrix{<:Integer}; kws...)
     length(n) == size(B, 1) || throw(DimensionMismatch("incompatible dimensions of `n` and `B`"))
-    return indicators(n, smith(B))
+    return indicators(n, smith(B); kws...)
 end
-function indicators(n::AbstractVector{<:Integer}, BRS::BandRepSet)
+function indicators(n::AbstractVector{<:Integer}, BRS::BandRepSet; kws...)
     B = matrix(BRS; includedim=includes_connectivity(n, BRS))
-    return indicators(n, B)
+    return indicators(n, B; kws...)
 end
 
 # -----------------------------------------------------------------------------------------
 # Decomposition in EBRs
 
-@doc raw"""
+@doc """
 $(TYPEDSIGNATURES)
 
 Return a decomposition of `n` in the columns of `B` as expansion coefficients `c`. I.e.,
-denoting by ``\mathbf{b}_i`` the columns of `B` and by ``c_i`` the elements of `c`, we find
+denoting by ``\\mathbf{b}_i`` the columns of `B` and by ``c_i`` the elements of `c`, we find
 `c` s.t.:
 
-``\mathbf{n} = \sum_i c_i\mathbf{b}_i``
+``\\mathbf{n} = \\sum_i c_i\\mathbf{b}_i``
 
 Depending on the topology of `n`, the coefficients of `c` have the following attributes:
 - `TRIVIAL`: `c` is a vector of non-negative integers,
@@ -350,17 +399,18 @@ Depending on the topology of `n`, the coefficients of `c` have the following att
 
 The returned decomposition coefficients `c` are chosen to be the least norm coefficients
 (under the constraint that the coefficients belong to the noted integer/rational domains).
-In all cases, `c` is returned as a `Vector{Float64}`. 
+In all cases, `c` is returned as a `Vector{Float64}`.
+
+The keyword argument `allow_nonphysical` is forwarded to [`isbandstruct`](@ref).
 """
 function decompose(
             n::AbstractVector{<:Integer},
             B::AbstractMatrix{<:Integer},
-            F::Smith=smith(B))
-
-    isbandstruct(n, F) || error("`n` is not a physically realizable band grouping")
+            F::Smith=smith(B);
+            allow_nonphysical::Bool=false)
     
-    topo = calc_topology(n, F)
-    if calc_topology(n, F) === TRIVIAL
+    topo = calc_topology(n, F; allow_nonphysical) # checks `isbandstruct` as well
+    if topo === TRIVIAL
         # then an integer expansion must exist; find out if trivial or fragile
         m = has_posint_expansion(n, B)
         if termination_status(m) == MOI.OPTIMAL # ⇒ trivial
@@ -388,7 +438,7 @@ function decompose(
 
     return c
 end
-function decompose(n::AbstractVector{<:Integer}, BRS::BandRepSet)
+function decompose(n::AbstractVector{<:Integer}, BRS::BandRepSet; kws...)
     B = matrix(BRS; includedim=includes_connectivity(n, BRS))
-    return decompose(n, B)
+    return decompose(n, B; kws...)
 end
