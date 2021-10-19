@@ -19,7 +19,7 @@ function __init__()
     try
         copy!(PyNormaliz, pyimport("PyNormaliz"))
     catch
-        @warn "PyNormaliz could not be imported: some functionality of SymmetryBases.jl is nonfunctional"
+        @warn "PyNormaliz could not be imported: related functionality of SymmetryBases.jl is nonfunctional"
     end
 end
 
