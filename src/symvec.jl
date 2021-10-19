@@ -2,7 +2,7 @@
 #                  Methods to test the topology of a given symmetry vector n               #
 # ---------------------------------------------------------------------------------------- #
 
-function _throw_incompatible_or_nonphysical()
+function _throw_incompatible_or_nonphysical(n)
     error(DomainError(n, "`n` is not a physically realizable band grouping"))
 end
 
@@ -229,7 +229,7 @@ function calc_topology(
             F::Smith;
             allow_nonphysical::Bool=false)
 
-    isbandstruct(n, F; allow_nonphysical) || _throw_incompatible_or_nonphysical()
+    isbandstruct(n, F; allow_nonphysical) || _throw_incompatible_or_nonphysical(n)
     
     S⁻¹, Λ = F.Sinv, F.SNF # Λ = [λ₁, …, λ_{dᵇˢ}, 0, …, 0]
     dᵇˢ = count(!iszero, Λ)
@@ -363,7 +363,7 @@ function indicators(
             F::Smith;
             allow_nonphysical::Bool=false)
 
-    isbandstruct(n, F; allow_nonphysical) || _throw_incompatible_or_nonphysical()
+    isbandstruct(n, F; allow_nonphysical) || _throw_incompatible_or_nonphysical(n)
 
     idxs = findall(x -> x≠0 && x≠1, F.SNF) # find nontrivial factor groups
     Λ    = @view F.SNF[idxs]               # nontrivial invariant factors
