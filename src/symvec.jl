@@ -61,18 +61,22 @@ the compatibility basis (⇒ nontrivial), in the preceding *and* in the nontopol
 (⇒ fragile), or in the preceding *and* in the EBR basis (⇒ trivial) - but is much faster
 (due to not solving multiple non-negative feasibility questions).
 
+## Keyword arguments
 If `n` is not a compatible band structure (i.e., if `isbandstruct(n, BRS) = false`), an
-error is thrown.
-The keyword argument `allow_nonphysical` allows disabling the check for non-negativity of
-symmetry content.
+error is thrown. This behavior can be controlled by two boolean keyword arguments:
+
+- `allow_incompatible` (`false`): if `true`, disables the compatibility check entirely.
+- `allow_nonphysical` (`false`): if `true`, allows negative symmetry content, but maintain
+  requirement that `n` respects the compatibilty relations in an algebraic sense.
 """
 function calc_detailed_topology(
             n::AbstractVector{<:Integer},
             B::AbstractMatrix{<:Integer},
             F::Smith=smith(B);
+            allow_incompatible::Bool=false,
             allow_nonphysical::Bool=false)
 
-    coarse_topo = calc_topology(n, F; allow_nonphysical) # checks `isbandstruct` as well
+    coarse_topo = calc_topology(n, F; allow_incompatible, allow_nonphysical) # checks `isbandstruct` as well
     if coarse_topo == TRIVIAL       # ⇒ trivial/fragile
         trivial_m = has_posint_expansion(n, B)
         if termination_status(trivial_m) ≠ MOI.OPTIMAL
@@ -98,10 +102,10 @@ function calc_detailed_topology(
             spinful::Bool=false,
             timereversal::Bool=true,
             allpaths::Bool=false,
-            allow_nonphysical::Bool=false)
+            kws...)
 
     BRS = bandreps(sgnum, D; spinful, timereversal, allpaths)
-    return calc_detailed_topology(n, BRS; allow_nonphysical)
+    return calc_detailed_topology(n, BRS; kws...)
 end
 
 
@@ -223,13 +227,24 @@ for all ``j = 1, \\ldots, d^{\\text{bs}}`` (``d^{\\text{bs}}`` is the number of 
 diagonal elements of ``\\boldsymbol{\\Lambda}``, i.e. the invariant factors of
 ``\\mathbf{B}``), there exists a solution to ``\\mathbf{B}\\mathbf{c} = \\mathbf{n}`` with
 integer coefficients ``c_j \\in \\mathbb{Z}``.
+
+## Keyword arguments
+If `n` is not a compatible band structure (i.e., if `isbandstruct(n, [...]) = false`), an
+error is thrown. This behavior can be controlled by two boolean keyword arguments:
+
+- `allow_incompatible` (`false`): if `true`, disables the compatibility check entirely.
+- `allow_nonphysical` (`false`): if `true`, allows negative symmetry content, but maintain
+  requirement that `n` respects the compatibilty relations in an algebraic sense.
 """
 function calc_topology(
             n::AbstractVector{<:Integer},
             F::Smith;
+            allow_incompatible::Bool=false,
             allow_nonphysical::Bool=false)
 
-    isbandstruct(n, F; allow_nonphysical) || _throw_incompatible_or_nonphysical(n)
+    if !allow_incompatible && !isbandstruct(n, F; allow_nonphysical)
+        _throw_incompatible_or_nonphysical(n)
+    end
     
     S⁻¹, Λ = F.Sinv, F.SNF # Λ = [λ₁, …, λ_{dᵇˢ}, 0, …, 0]
     dᵇˢ = count(!iszero, Λ)
@@ -271,9 +286,9 @@ compatibility relations in the Brillouin zone and is non-negative. That is, test
 
 ## Keyword arguments
 
-- `allow_nonphysical :: Bool=false`: if `true`, disables non-negativity check.
-  This can be relevant if the symmetry vector contains negative content that may
-  nevertheless respect the compatibility relations in a strictly algebraic sense.
+- `allow_nonphysical` (`false`): if `true`, allows negative symmetry content.
+  This can be relevant if `n` contains negative content that may nevertheless respect the
+  compatibility relations in a strictly algebraic sense.
 
 ## Implementation
 
@@ -346,8 +361,6 @@ associated nontrivial elementary factors ``[\\lambda_1, \\ldots, \\lambda_n]`` o
 The indices ``\\nu_i`` are elements of a cyclic group of order ``\\lambda_i``, i.e. 
 ``\\nu_i ∈ \\mathbb{Z}_{\\lambda_i} = \\{0, 1, \\ldots, \\lambda_i-1\\}``.
 
-The keyword argument `allow_nonphysical` is forwarded to [`isbandstruct`](@ref).
-
 ## Implementation
 
 The indices are computed using the Smith normal decomposition ``\\mathbf{B} = \\mathbf{S}
@@ -357,13 +370,24 @@ Specifically, denoting by ``\\mathbf{s}_i^{-1}`` the ``i``th nontrivial row of
 ``\\mathbf{n}`` are computed as ``\\nu_i = \\mathbf{s}_i^{-1}\\mathbf{n}``.[^HCP]
 
 [^HCP]: [H.C. Po, J. Phys. Cond. Matter **32**, 263001 (2020)](https://doi.org/10.1088/1361-648X/ab7adb).
+
+## Keyword arguments
+If `n` is not a compatible band structure (i.e., if `isbandstruct(n, BRS) = false`), an
+error is thrown. This behavior can be controlled by two boolean keyword arguments:
+
+- `allow_incompatible` (`false`): if `true`, disables the compatibility check entirely.
+- `allow_nonphysical` (`false`): if `true`, allows negative symmetry content, but maintain
+  requirement that `n` respects the compatibilty relations in an algebraic sense.
 """
 function indicators(
             n::AbstractVector{<:Integer},
             F::Smith;
+            allow_incompatible::Bool=false,
             allow_nonphysical::Bool=false)
 
-    isbandstruct(n, F; allow_nonphysical) || _throw_incompatible_or_nonphysical(n)
+    if !allow_incompatible || !isbandstruct(n, F; allow_nonphysical)
+        _throw_incompatible_or_nonphysical(n)
+    end
 
     idxs = findall(x -> x≠0 && x≠1, F.SNF) # find nontrivial factor groups
     Λ    = @view F.SNF[idxs]               # nontrivial invariant factors
@@ -401,15 +425,23 @@ The returned decomposition coefficients `c` are chosen to be the least norm coef
 (under the constraint that the coefficients belong to the noted integer/rational domains).
 In all cases, `c` is returned as a `Vector{Float64}`.
 
-The keyword argument `allow_nonphysical` is forwarded to [`isbandstruct`](@ref).
+## Keyword arguments
+If `n` is not a compatible band structure (i.e., if `isbandstruct(n, BRS) = false`), an
+error is thrown. This behavior can be controlled by two boolean keyword arguments:
+
+- `allow_incompatible` (`false`): if `true`, disables the compatibility check entirely.
+- `allow_nonphysical` (`false`): if `true`, allows negative symmetry content, but maintain
+  requirement that `n` respects the compatibilty relations in an algebraic sense.
+
 """
 function decompose(
             n::AbstractVector{<:Integer},
             B::AbstractMatrix{<:Integer},
             F::Smith=smith(B);
+            allow_incompatible::Bool=false,
             allow_nonphysical::Bool=false)
     
-    topo = calc_topology(n, F; allow_nonphysical) # checks `isbandstruct` as well
+    topo = calc_topology(n, F; allow_incompatible, allow_nonphysical) # checks `isbandstruct` as well
     if topo === TRIVIAL
         # then an integer expansion must exist; find out if trivial or fragile
         m = has_posint_expansion(n, B)
