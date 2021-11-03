@@ -2,7 +2,7 @@
 
 This package provides access to computation of Hilbert bases associated with the space of band structure symmetries (see `compatibility_bases`, `nontopological_bases`, and `split_fragiletrivial`), using Normaliz (which must be installed separately).
 
-The package additionally provides a number of utilities to easily check the topology of a symmetry vector, using elementary band representations accessed from [Crystalline.jl](https://github.com/thchr/Crystalline.jl) (see `calc_detailed_topology`, `calc_topology`, `isbandstruct`, and `indicators`).
+The package additionally provides a number of utilities to easily check the topology of a symmetry vector, using elementary band representations accessed from [Crystalline.jl](https://github.com/thchr/Crystalline.jl) (see `calc_detailed_topology`, `calc_topology`, `isbandstruct`, `indicators` and `decompose`).
 
 ## License
 
