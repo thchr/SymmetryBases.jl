@@ -385,7 +385,7 @@ function indicators(
             allow_incompatible::Bool=false,
             allow_nonphysical::Bool=false)
 
-    if !allow_incompatible || !isbandstruct(n, F; allow_nonphysical)
+    if !allow_incompatible && !isbandstruct(n, F; allow_nonphysical)
         _throw_incompatible_or_nonphysical(n)
     end
 
