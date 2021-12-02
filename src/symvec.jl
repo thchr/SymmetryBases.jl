@@ -15,7 +15,7 @@ function includes_connectivity(n::AbstractVector{<:Integer}, BRS::BandRepSet)
     Nirr, Nn = length(irreplabels(BRS)), length(n)
     if Nn == Nirr+1
         return true
-    elseif N == Nirr
+    elseif Nn == Nirr
         return false
     else 
         error(DimensionMismatch("incompatible dimensions of `n` and `BRS`"))
