@@ -142,7 +142,7 @@ function split_fragiletrivial(sb_nontopo::SymBasis, B::AbstractMatrix)
     if sb_nontopo.compatbasis
         throw(DomainError(sb_nontopo, "provided `SymBasis` must have `compatbasis=false`"))
     end
-    return split_fragiletrivial(sb_nontopo, B)
+    return split_fragiletrivial(parent(sb_nontopo), B)
 end
 function split_fragiletrivial(sb_nontopo::SymBasis, BRS::BandRepSet)
     Nirr, Nrows = length(irreplabels(sb_nontopo)), length(first(sb_nontopo))
