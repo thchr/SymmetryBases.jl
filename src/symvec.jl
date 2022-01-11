@@ -57,9 +57,9 @@ In the latter case, we resolve triviality vs. fragility by subsequently checking
 `n` has a non-negative expansion in the EBR basis using [`has_posint_expansion`](@ref).
 
 This approach is equivalent to checking whether `n` has a non-negative expansion only in
-the compatibility basis (⇒ nontrivial), in the preceding *and* in the nontopological basis
-(⇒ fragile), or in the preceding *and* in the EBR basis (⇒ trivial) - but is much faster
-(due to not solving multiple non-negative feasibility questions).
+the compatibility basis `sb` (⇒ nontrivial), in `sb` *and* in the nontopological basis
+but *not* in the EBR basis (⇒ fragile), or in `sb` *and* in the EBR basis (⇒ trivial) -
+but is much faster (due to not solving multiple non-negative feasibility problems).
 
 ## Keyword arguments
 If `n` is not a compatible band structure (i.e., if `isbandstruct(n, BRS) = false`), an
@@ -107,90 +107,6 @@ function calc_detailed_topology(
     BRS = bandreps(sgnum, D; spinful, timereversal, allpaths)
     return calc_detailed_topology(n, BRS; kws...)
 end
-
-
-# To-be-removed-variants below:
-"""
-    calc_detailed_topology(n, nontopo_M, trivial_M, M=nothing) -> ::TopologyKind
-
-!!! warning
-    This method signature is deprecated and will be removed in a future version: use 
-    [`calc_detailed_topology(::AbstractVector, ::AbstractMatrix, ::Smith)`](@ref) instead.
-
-Evaluate whether a given (valid, i.e. regular) symmetry vector represents a band-combination
-that is trivial, nontrivial, or fragile from a symmetry perspective.
-This is done by comparing against the nontopological, trivial, and full symmetry bases
-`nontopo_M`, `trivial_M`, and `M`, respectively, provided as matrices with columns of
-symmetry basis vectors (i.e. checks whether a valid expansion exists in each).
-
-If `trivial_M` is given as `nothing`, it is taken to imply that it is equal to `nontopo_M`,
-meaning that there are no fragile phases. 
-In this case, however, [`calc_topology`](@ref) will generally be far more efficient.
-
-If `M` is _not_ `nothing` (i.e. a matrix representing the full symmetry basis), an 
-additional sanity/safety check is carried out: otherwise not. Otherwise not necessary.
-
-Returns a member value of the `TopologyKind` Enum (`TRIVIAL`, `NONTRIVIAL`, or 
-`FRAGILE`).
-"""
-function calc_detailed_topology(n::AbstractVector{<:Integer},
-            nontopo_M::AbstractMatrix{<:Integer},
-            trivial_M::Union{Nothing, AbstractMatrix{<:Integer}},
-            M::Union{Nothing, <:AbstractMatrix{<:Integer}}=nothing)
-    # TODO: Remove this method: it is far slower than the `(n, ::Matrix, Smith)` variant
-    #       and no better (but quite a bit more complicated)
-
-    # check whether expansion exists in nontopological basis
-    nontopo_m = has_posint_expansion(n, nontopo_M)
-
-    # check to see what the termination status (i.e. result) of the optimization was 
-    status′ = termination_status(nontopo_m)
-    if status′ == MOI.OPTIMAL           # feasible solution found     ⇒ trivial/fragile
-        # determine whether trivial or fragile
-        if !isnothing(trivial_M)
-            trivial_m = has_posint_expansion(n, trivial_M)
-            if termination_status(trivial_m) ≠ MOI.OPTIMAL
-                # expansion in trivial-only basis elements impossible ⇒ fragile
-                return FRAGILE
-            end
-        end
-        # expansion in trivial-only elements feasible                ⇒ trivial
-        return TRIVIAL
-        
-    elseif status′ == MOI.INFEASIBLE    # infeasible problem          ⇒ nontrivial
-        if !isnothing(M) # do a sanity-check to verify that expansion exists in full basis
-            m = has_posint_expansion(n, M)
-            if termination_status(m) ≠ MOI.OPTIMAL
-                error("It must be possible to find an expansion in the full basis")
-            end
-        end
-
-        return NONTRIVIAL
-
-    else
-        throw(DomainError(status′, 
-            "unexpected optimization termination status: expected OPTIMAL or INFEASIBLE"))
-    end
-end
-
-# TODO: Remove method
-function calc_detailed_topology(
-            n::AbstractVector{<:Integer}, 
-            nontopo_sb::SymBasis,
-            BRS::BandRepSet,
-            sb::Union{Nothing, SymBasis}=nothing)
-
-    nontopo_M = matrix(nontopo_sb)
-    
-    trivial_idxs, fragile_idxs = split_fragiletrivial(nontopo_sb, matrix(BRS; includedim=true))
-    can_be_fragile = !isempty(fragile_idxs)
-    trivial_M = can_be_fragile ? (@view nontopo_M[:, trivial_idxs]) : nothing
-    
-    M = sb === nothing ? nothing : matrix(sb)
-
-    return calc_detailed_topology(n, nontopo_M, trivial_M, M)
-end
-
 
 # -----------------------------------------------------------------------------------------
 # Trivial/nontrivial solution topology via Smith/BandRepSet
