@@ -3,7 +3,11 @@ module SymmetryBases
 using Crystalline
 using PyCall
 using PrettyTables
-using JuMP, GLPK
+using JuMP
+using GLPK     # for `has_posint_expansion`
+using HiGHS    # ┌ 
+using Pajarito # │ for `decompose` with `ensure_min_norm = true`
+using Hypatia  # └
 using DocStringExtensions
 using LinearAlgebra
 

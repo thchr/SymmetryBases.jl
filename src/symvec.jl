@@ -31,7 +31,7 @@ columns of `M`, i.e. whether there exists ``cᵢ∈ℕ`` (``=0,1,2,...``)  such 
 function has_posint_expansion(n::AbstractVector{<:Integer}, M::AbstractMatrix{<:Integer})
     N = size(M, 2)
     # feasibility problem with positive-integer variables, subject to the condition Mc = n
-    m = Model(GLPK.Optimizer)
+    m = Model(GLPK.Optimizer) # TODO: can swap for HiGHS?
     @variable(m, c[1:N] >= 0, Int)
     @constraint(m, M*c .== n)
     # try to solve the model
@@ -337,9 +337,7 @@ Depending on the topology of `n`, the coefficients of `c` have the following att
 - `FRAGILE`: `c` is a vector of integers,
 - `NONTRIVIAL`: `c` is a vector of rationals.
 
-The returned decomposition coefficients `c` are chosen to be the least norm coefficients
-(under the constraint that the coefficients belong to the noted integer/rational domains).
-In all cases, `c` is returned as a `Vector{Float64}`.
+`c` is returned as a `Vector{Rational{Int}}`.
 
 ## Keyword arguments
 If `n` is not a compatible band structure (i.e., if `isbandstruct(n, BRS) = false`), an
@@ -348,45 +346,97 @@ error is thrown. This behavior can be controlled by two boolean keyword argument
 - `allow_incompatible` (`false`): if `true`, disables the compatibility check entirely.
 - `allow_nonphysical` (`false`): if `true`, allows negative symmetry content, but maintain
   requirement that `n` respects the compatibilty relations in an algebraic sense.
-
+- `seek_minimal_norm` (`true`): if `true`, additionally solves an integer quadratic problem
+  to explicitly minimize the norm of the decomposition vector. Useful for ensuring a
+  maximally simple expansion. Typically, however, this is achieved even with
+  `seek_minimal_norm = false`.
+  Setting to `false` will improve performance, usually substantially.
 """
 function decompose(
             n::AbstractVector{<:Integer},
             B::AbstractMatrix{<:Integer},
             F::Smith=smith(B);
             allow_incompatible::Bool=false,
-            allow_nonphysical::Bool=false)
+            allow_nonphysical::Bool=false,
+            seek_minimal_norm::Bool=true)
     
+    c::Union{Vector{Float64}, Nothing} = nothing # placeholder, for branching
     topo = calc_topology(n, F; allow_incompatible, allow_nonphysical) # checks `isbandstruct` as well
     if topo === TRIVIAL
         # then an integer expansion must exist; find out if trivial or fragile
         m = has_posint_expansion(n, B)
         if termination_status(m) == MOI.OPTIMAL # ⇒ trivial
-            return value.(m[:c]::Vector{JuMP.VariableRef}) # coefficients
+            c = value.(m[:c]::Vector{JuMP.VariableRef})::Vector{Float64} # coefficients
         end
     end
 
-    # `n` is either fragile or nontrivial: in either case, the best we can do is return
-    # a possible decomposition using the generalized inverse of B
-    Nⁱʳʳ, Nᴱᴮᴿ = size(F.S, 1), size(F.T, 1)
-    Λᵍ = diagm(Nⁱʳʳ, Nᴱᴮᴿ, map(λ -> iszero(λ) ? 0.0 : inv(λ), F.SNF))' # TODO: avoid constructing full matrix
-    Bᵍ = F.Tinv * Λᵍ * F.Sinv # generalized inverse w/ rational coefficients
-    # the general solution is Bᵍn + (I-BᵍB)y w/ y∈ℤᵈ cf. Ben & Israel book, p. 98. Since
-    # Bᵍ generates the column space while (I-BᵍB) generates the null space, the two
-    # contributions are orthogonal; so the norm of the solution is ‖Aᵍn‖ + ‖(I-AᵍA)y‖.
-    # Thus, to get the least norm solution, we simply drop the null space term - this is
-    # basically following the usual reasoning for _real_ least norm least squares solutions
-    # (see e.g. https://math.stackexchange.com/a/2253614/)
-    c = Bᵍ*n 
-    
+    if seek_minimal_norm || isnothing(c)
+        # `n` is either fragile or nontrivial: in either case, the best we can do is return
+        # a possible decomposition using the generalized inverse of B
+        Nⁱʳʳ, Nᴱᴮᴿ = size(F.S, 1), size(F.T, 1)
+        Λᵍ = diagm(Nⁱʳʳ, Nᴱᴮᴿ, map(λ -> iszero(λ) ? 0.0 : inv(λ), F.SNF))' # TODO: avoid constructing full matrix
+        Bᵍ = F.Tinv * Λᵍ * F.Sinv # generalized inverse w/ rational coefficients
+        if isnothing(c)
+            # situation: there is no positive, integer-coefficient solution; must have
+            # negative or rational coefficients - we then use the following general solution
+            # procedure: namely, c = Bᵍn + (I-BᵍB)y w/ y∈ℤᵈ cf. Ben & Israel book, p. 98.
+            # Here, Bᵍ generates the column space while (I-BᵍB) generates the null space,
+            # but unlike the real-coefficient solution case (https://math.stackexchange.com/a/2253614/),
+            # this apparently does not necessitate that the two spaces are orthogonal;
+            # instead, a smaller-norm solution might be found by varying y.
+            c = Bᵍ*n
+        end
+        if seek_minimal_norm
+            c = _minimize_decomposition_norm(c::Vector{Float64}, B, Bᵍ)
+        end
+    end
+
+    # cast to a rational vector
+    c′ = rationalize.(c; tol=1e-4)
+
     # check that the coefficients indeed solve the system exactly, not just as a least
     # squares solution
-    res = norm(B*c - n)
-    res < Crystalline.DEFAULT_ATOL || error("nonzero residual $res of solution c=$c")
+    res = norm(B*c′ - n)
+    res < Crystalline.DEFAULT_ATOL || error("nonzero residual $res of solution c′=$c′")
 
-    return c
+    return c′
 end
 function decompose(n::AbstractVector{<:Integer}, BRS::BandRepSet; kws...)
     B = matrix(BRS; includedim=includes_connectivity(n, BRS))
     return decompose(n, B; kws...)
+end
+
+function _minimize_decomposition_norm(c, B, Bᵍ)
+    # all solutions have the form `c + N*y` where y is an integer vector
+    N = round.(Int, I-Bᵍ*B) # null-space matrix
+    N ≈ I-Bᵍ*B || error("failed to compute integer-valued null-space matrix")
+
+    idxs = findall(!iszero, eachcol(N)) 
+    N′ = N[:,idxs] # nonzero columns of null-space
+
+    # set up & solve norm-minimization problem: min_y ‖c + Ny‖ for yᵢ∈ℤ
+    m = Model( 
+        # copied whole-sale from from Pajarito's README.md
+        optimizer_with_attributes(
+            Pajarito.Optimizer,
+            "oa_solver" => optimizer_with_attributes(
+                HiGHS.Optimizer,
+                MOI.Silent() => true,
+                "mip_feasibility_tolerance" => 1e-8,
+                "mip_rel_gap" => 1e-6),
+            "conic_solver" => optimizer_with_attributes(
+                Hypatia.Optimizer,
+                MOI.Silent() => true),
+            )
+    )
+    set_attribute(m, "verbose", false)
+    @variable(m, y[1:length(idxs)], Int)
+    @objective(m, Min, sum(abs2, c+N′*y))
+    optimize!(m)
+
+    # obtain new coefficient solution as `c+N*y`
+    y_optim = round.(Int, value.(m[:y]::Vector{JuMP.VariableRef}))
+    Δc = N′*y_optim
+
+    return c + Δc
 end
