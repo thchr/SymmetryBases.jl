@@ -11,7 +11,7 @@ struct SymBasis <: AbstractVector{Vector{Int}}
     kv2ir_idxs::Vector{UnitRange{Int}} # pick k-point; find assoc. ir indices
     sgnum::Int
     spinful::Bool
-    timeinvar::Bool
+    timereversal::Bool
     compatbasis::Bool
 end
 function SymBasis(nsᴴ::AbstractMatrix{Int}, BRS::BandRepSet, compatbasis::Bool=true)
@@ -29,7 +29,6 @@ num(sb::SymBasis)    = sb.sgnum
 irreplabels(sb::SymBasis) = sb.irlabs
 klabels(sb::SymBasis)     = sb.klabs
 isspinful(sb::SymBasis)   = sb.spinful
-istimeinvar(sb::SymBasis) = sb.timeinvar
 fillings(sb::SymBasis)    = [nᴴ[end] for nᴴ in sb.symvecs]
 
 # define the AbstractArray interface for SymBasis

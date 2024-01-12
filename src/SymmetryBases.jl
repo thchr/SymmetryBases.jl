@@ -12,7 +12,7 @@ using DocStringExtensions
 using LinearAlgebra
 
 import Base: OneTo, show, size, getindex, firstindex, lastindex, IndexStyle, length, parent
-import Crystalline: matrix, num, irreplabels, klabels, isspinful, istimeinvar
+import Crystalline: matrix, num, irreplabels, klabels, isspinful
 
 # ---------------------------------------------------------------------------------------- #
 
