@@ -6,7 +6,7 @@ function show(io::IO, ::MIME"text/plain", sb::SymBasis)
                 length(sb), " Hilbert vectors, sampling ",
                 Nⁱʳʳ, " LGIrreps ",
                 "(spin-", isspinful(sb) ? "½" : "1", " ",
-                istimeinvar(sb) ? "w/" : "w/o", " TR)")
+                sb.timereversal ? "w/" : "w/o", " TR)")
 
     k_idx = (i) -> findfirst(==(klabel(irreplabels(sb)[i])), klabels(sb)) # highlighters
     h_odd = Highlighter((data,i,j) -> i≤Nⁱʳʳ && isodd(k_idx(i)), crayon"light_blue")
