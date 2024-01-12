@@ -22,7 +22,7 @@ function show(io::IO, ::MIME"text/plain", sb::SymBasis)
         formatters = (v,i,j) -> iszero(v) ? "·" : string(v),
         vlines = [1,],
         hlines = [:begin, 1, Nⁱʳʳ+1, :end],
-        row_name_alignment = :l,
+        row_label_alignment = :l,
         alignment = :c, 
         highlighters = (h_odd, h_ν), 
         header_crayon = crayon"bold"
