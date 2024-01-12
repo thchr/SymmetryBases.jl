@@ -19,7 +19,7 @@ function SymBasis(nsᴴ::AbstractMatrix{Int}, BRS::BandRepSet, compatbasis::Bool
                    findfirst(f, BRS.irlabs):findlast(f, BRS.irlabs)) for klab in BRS.klabs]
     return SymBasis(collect(eachcol(nsᴴ)),
                     BRS.irlabs, BRS.klabs, BRS.kvs, kv2ir_idxs, 
-                    BRS.sgnum, BRS.spinful, BRS.timeinvar, compatbasis)
+                    BRS.sgnum, BRS.spinful, BRS.timereversal, compatbasis)
 end
 
 # accessors
