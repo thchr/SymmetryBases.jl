@@ -14,17 +14,16 @@ struct SymBasis <: AbstractVector{Vector{Int}}
     timereversal::Bool
     compatbasis::Bool
 end
-function SymBasis(nsᴴ::AbstractMatrix{Int}, BRS::BandRepSet, compatbasis::Bool=true)
+function SymBasis(nsᴴ::AbstractMatrix{Int}, brs::BandRepSet, compatbasis::Bool=true)
     kv2ir_idxs = [(f = irlab -> klabel(irlab)==klab; 
-                   findfirst(f, BRS.irlabs):findlast(f, BRS.irlabs)) for klab in BRS.klabs]
+                   findfirst(f, brs.irlabs):findlast(f, brs.irlabs)) for klab in brs.klabs]
     return SymBasis(collect(eachcol(nsᴴ)),
-                    BRS.irlabs, BRS.klabs, BRS.kvs, kv2ir_idxs, 
-                    BRS.sgnum, BRS.spinful, BRS.timereversal, compatbasis)
+                    brs.irlabs, brs.klabs, brs.kvs, kv2ir_idxs, 
+                    brs.sgnum, brs.spinful, brs.timereversal, compatbasis)
 end
 
 # accessors
 parent(sb::SymBasis) = sb.symvecs
-matrix(sb::SymBasis) = reduce(hcat, parent(sb)) # TODO: rename `stack` as in Bravais?
 num(sb::SymBasis)    = sb.sgnum
 irreplabels(sb::SymBasis) = sb.irlabs
 klabels(sb::SymBasis)     = sb.klabs

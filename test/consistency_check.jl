@@ -4,14 +4,14 @@ using Crystalline
 using JuMP, GLPK
 
 """
-    _test_hilbert_basis_consistency(BRS::BandRepSet, F::Smith,
+    _test_hilbert_basis_consistency(brs::BandRepSet, F::Smith,
                     nsᴴ::AbstractMatrix, nsᴴ_nontopo::AbstractMatrix)
 
 Test that the obtained "non-topological" basis indeed obey some of the conditions that we
 know they must. Prints a checkmark (✓) if succesful; throws `Test.FallbackTestSetException`
 otherwise. Returns `nothing`.
 """
-function _test_hilbert_basis_consistency(BRS::BandRepSet, F::Smith,
+function _test_hilbert_basis_consistency(brs::BandRepSet, F::Smith,
                 nsᴴ::AbstractMatrix, nsᴴ_nontopo::AbstractMatrix)
 
     print("   ... checking consistency of non-topological basis: ")
@@ -40,7 +40,7 @@ function _test_hilbert_basis_consistency(BRS::BandRepSet, F::Smith,
     nsᴴ_topo_subset    = @view nsᴴ[:, topo_idxs_subset]
 
     # If classification is Z₁, nsᴴ and nsᴴ_nontopo must be equal
-    if classification(BRS) == "Z₁"
+    if classification(brs) == "Z₁"
         @test Set(eachcol(nsᴴ)) == Set(eachcol(nsᴴ_nontopo))
         println("✓ (trivially)")
     else 

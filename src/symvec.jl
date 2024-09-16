@@ -9,16 +9,16 @@ end
 """
     $(TYPEDSIGNATURES)
 
-Return whether `n` includes the connectivity as an element by comparing with size of `BRS`.
+Return whether `n` includes the connectivity as an element by comparing with size of `brs`.
 """
-function includes_connectivity(n::AbstractVector{<:Integer}, BRS::BandRepSet)
-    Nirr, Nn = length(irreplabels(BRS)), length(n)
+function includes_connectivity(n::AbstractVector{<:Integer}, brs::BandRepSet)
+    Nirr, Nn = length(irreplabels(brs)), length(n)
     if Nn == Nirr+1
         return true
     elseif Nn == Nirr
         return false
     else 
-        error(DimensionMismatch("incompatible dimensions of `n` and `BRS`"))
+        error(DimensionMismatch("incompatible dimensions of `n` and `brs`"))
     end
 end
 
@@ -42,7 +42,7 @@ end
 
 """
     calc_detailed_topology(n, B::Matrix{<:Integer}, [F::Smith=smith(B)]; allow_nonphysical)
-    calc_detailed_topology(n, BRS::BandRepSet; allow_nonphysical)
+    calc_detailed_topology(n, brs::BandRepSet; allow_nonphysical)
     calc_detailed_topology(n, sgnum::Integer, [D::Integer=3]; kwargs...) 
 
 Return whether a integer symmetry vector `n` is topologically trivial, nontrivial, or
@@ -62,7 +62,7 @@ but *not* in the EBR basis (⇒ fragile), or in `sb` *and* in the EBR basis (⇒
 but is much faster (due to not solving multiple non-negative feasibility problems).
 
 ## Keyword arguments
-If `n` is not a compatible band structure (i.e., if `isbandstruct(n, BRS) = false`), an
+If `n` is not a compatible band structure (i.e., if `isbandstruct(n, brs) = false`), an
 error is thrown. This behavior can be controlled by two boolean keyword arguments:
 
 - `allow_incompatible` (`false`): if `true`, disables the compatibility check entirely.
@@ -90,8 +90,11 @@ function calc_detailed_topology(
     end
 end
 
-function calc_detailed_topology(n::AbstractVector{<:Integer}, BRS::BandRepSet; kws...)
-    B = matrix(BRS; includedim=includes_connectivity(n, BRS))
+function calc_detailed_topology(n::AbstractVector{<:Integer}, brs::BandRepSet; kws...)
+    B = stack(brs)
+    if !includes_connectivity(n, brs)
+        B = B[1:end-1, :]
+    end
     return calc_detailed_topology(n, B; kws...)
 end
 
@@ -104,8 +107,8 @@ function calc_detailed_topology(
             allpaths::Bool=false,
             kws...)
 
-    BRS = bandreps(sgnum, D; spinful, timereversal, allpaths)
-    return calc_detailed_topology(n, BRS; kws...)
+    brs = bandreps(sgnum, D; spinful, timereversal, allpaths)
+    return calc_detailed_topology(n, brs; kws...)
 end
 
 # -----------------------------------------------------------------------------------------
@@ -184,8 +187,11 @@ function calc_topology(n::AbstractVector{<:Integer}, B::AbstractMatrix{<:Integer
     return calc_topology(n, smith(B); kws...)
 end
 
-function calc_topology(n::AbstractVector{<:Integer}, BRS::BandRepSet; kws...)
-    B = matrix(BRS; includedim=includes_connectivity(n, BRS))
+function calc_topology(n::AbstractVector{<:Integer}, brs::BandRepSet; kws...)
+    B = stack(brs)
+    if !includes_connectivity(n, brs)
+        B = B[1:end-1, :]
+    end
     return calc_topology(n, B; kws...)
 end
 
@@ -260,7 +266,7 @@ function isbandstruct(
     return S̃*(S̃⁻¹*n) == n
 end
 isbandstruct(n::AbstractVector{<:Integer}, B::Matrix{<:Integer}; kws...) = isbandstruct(n, smith(B); kws...)
-isbandstruct(n::AbstractVector{<:Integer}, BRS::BandRepSet; kws...) = isbandstruct(n, matrix(BRS; includedim=true); kws...)
+isbandstruct(n::AbstractVector{<:Integer}, brs::BandRepSet; kws...) = isbandstruct(n, stack(brs); kws...)
 
 # -----------------------------------------------------------------------------------------
 # Stable topological indices
@@ -288,7 +294,7 @@ Specifically, denoting by ``\\mathbf{s}_i^{-1}`` the ``i``th nontrivial row of
 [^HCP]: [H.C. Po, J. Phys. Cond. Matter **32**, 263001 (2020)](https://doi.org/10.1088/1361-648X/ab7adb).
 
 ## Keyword arguments
-If `n` is not a compatible band structure (i.e., if `isbandstruct(n, BRS) = false`), an
+If `n` is not a compatible band structure (i.e., if `isbandstruct(n, brs) = false`), an
 error is thrown. This behavior can be controlled by two boolean keyword arguments:
 
 - `allow_incompatible` (`false`): if `true`, disables the compatibility check entirely.
@@ -315,8 +321,11 @@ function indicators(n::AbstractVector{<:Integer}, B::AbstractMatrix{<:Integer}; 
     length(n) == size(B, 1) || throw(DimensionMismatch("incompatible dimensions of `n` and `B`"))
     return indicators(n, smith(B); kws...)
 end
-function indicators(n::AbstractVector{<:Integer}, BRS::BandRepSet; kws...)
-    B = matrix(BRS; includedim=includes_connectivity(n, BRS))
+function indicators(n::AbstractVector{<:Integer}, brs::BandRepSet; kws...)
+    B = stack(brs)
+    if !includes_connectivity(n, brs)
+        B = B[1:end-1, :]
+    end
     return indicators(n, B; kws...)
 end
 
@@ -340,7 +349,7 @@ Depending on the topology of `n`, the coefficients of `c` have the following att
 `c` is returned as a `Vector{Rational{Int}}`.
 
 ## Keyword arguments
-If `n` is not a compatible band structure (i.e., if `isbandstruct(n, BRS) = false`), an
+If `n` is not a compatible band structure (i.e., if `isbandstruct(n, brs) = false`), an
 error is thrown. This behavior can be controlled by two boolean keyword arguments:
 
 - `allow_incompatible` (`false`): if `true`, disables the compatibility check entirely.
@@ -401,8 +410,11 @@ function decompose(
 
     return c′
 end
-function decompose(n::AbstractVector{<:Integer}, BRS::BandRepSet; kws...)
-    B = matrix(BRS; includedim=includes_connectivity(n, BRS))
+function decompose(n::AbstractVector{<:Integer}, brs::BandRepSet; kws...)
+    B = stack(brs; includedim=)
+    if !includes_connectivity(n, brs)
+        B = B[1:end-1, :]
+    end
     return decompose(n, B; kws...)
 end
 

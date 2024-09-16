@@ -14,7 +14,7 @@ function show(io::IO, ::MIME"text/plain", sb::SymBasis)
 
     pretty_table(io, 
         # table contents
-        matrix(sb);
+        stack(sb);
         # column/row names
         header = eachindex(sb),
         row_labels = vcat(sb.irlabs, "μ"),

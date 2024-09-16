@@ -8,26 +8,26 @@ spinful = false
 timereversal = true
 algorithm = "DualMode" # DualMode or PrimalMode
 for sgnum in 1:MAX_SGNUM[3]
-    BRS = bandreps(sgnum, spinful=spinful, timereversal=timereversal)
+    brs = bandreps(sgnum, spinful=spinful, timereversal=timereversal)
     
-    B = matrix(BRS; includedim=true) # Matrix with columns of EBRs.
+    B = stack(brs) # matrix with columns of EBRs.
     
     F   = Crystalline.smith(B)       # Smith normal decomposition of B
     dᵇˢ = count(!iszero, F.SNF)      # "Dimensionality" of band structure
     Nⁱʳʳ, Nᴱᴮᴿ = size(B)
 
     # Print some simple stuff early on, to indicate that a calculation is running
-    println("\nSG", sgnum, ": ", classification(BRS), 
+    println("\nSG", sgnum, ": ", classification(brs), 
             " (", dᵇˢ, " \"band structure dimensions\"; ", Nⁱʳʳ, " inequalities)")
 
     # Compatibility Hilbert basis  
-    sb = compatibility_basis(F, BRS, algorithm=algorithm)
-    nsᴴ = matrix(sb) 
+    sb = compatibility_basis(F, brs, algorithm=algorithm)
+    nsᴴ = stack(sb) 
     Nᴴ = length(sb) # Number of Hilbert basis elements
 
     # Nontopological Hilbert basis 
-    sb_nontopo  = nontopological_basis(F, BRS, algorithm=algorithm)
-    nsᴴ_nontopo = matrix(sb_nontopo)
+    sb_nontopo  = nontopological_basis(F, brs, algorithm=algorithm)
+    nsᴴ_nontopo = stack(sb_nontopo)
     Nᴴ_nontopo  = length(sb_nontopo)
 
     # Splitting into trivial and fragile Hilbert basis elements
@@ -42,6 +42,6 @@ for sgnum in 1:MAX_SGNUM[3]
 
     # Test consistency of basis, if requested
     if test_nontopo
-        _test_hilbert_basis_consistency(BRS, F, nsᴴ, nsᴴ_nontopo)
+        _test_hilbert_basis_consistency(brs, F, nsᴴ, nsᴴ_nontopo)
     end
 end

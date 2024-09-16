@@ -12,16 +12,16 @@ verbose      = true
 for sgnum in sgnums
     println("SG ", sgnum)
     # prep-work to get Hilbert bases etc
-    BRS  = bandreps(sgnum, spinful=false, timereversal=timereversal)
-    B    = Crystalline.matrix(BRS; includedim=true) # Matrix with columns of EBRs
-    isℤ₁ = classification(BRS) == "Z₁"
+    brs  = bandreps(sgnum, spinful=false, timereversal=timereversal)
+    B    = stack(brs) # matrix with columns of EBRs
+    isℤ₁ = classification(brs) == "Z₁"
     if isℤ₁
         print("── trivial symmetry indicator group") 
     end 
     flush(stdout)
 
     F  = Crystalline.smith(B) # Smith normal decomposition of B
-    sb = compatibility_basis(F, BRS)
+    sb = compatibility_basis(F, brs)
     verbose && println("── computed sb ($(length(sb)) vectors)"); flush(stdout) 
 
     # compute non-topological Hilbert basis
@@ -29,7 +29,7 @@ for sgnum in sgnums
         if !timereversal && sgnum ∈ (83, 174, 175, 176)
             println("── skipped trivial/fragile basis elements split: computational quagmire")
         else
-            nontopo_sb = nontopological_basis(F, BRS)
+            nontopo_sb = nontopological_basis(F, brs)
             verbose && println("── computed nontopo_sb ($(length(nontopo_sb)) vectors)")
             flush(stdout)
 

@@ -5,7 +5,7 @@
 # elements Sᵢⱼ∈ℤ. To make nᵢ integer, we thus require zᵢ∈ℤ.
 
 """
-    compatibility_basis(F::Smith, BRS::BandRepSet; algorithm, verbose)
+    compatibility_basis(F::Smith, brs::BandRepSet; algorithm, verbose)
     compatibility_basis(sgnum::Integer, D::Integer=3; kwargs...)
 
 Computes the Hilbert basis associated with a Smith normal form `F` of the EBR matrix or from
@@ -25,7 +25,7 @@ time-reversal symmetry.
 - `verbose::Bool`: whether to print progress info during the Normaliz computation
 (`false`, default).
 """
-function compatibility_basis(F::Smith, BRS::BandRepSet; 
+function compatibility_basis(F::Smith, brs::BandRepSet; 
                              algorithm::String="DualMode", verbose::Bool=false)
     # To restrict nᵢ to only positive integers, i.e. ℕ, the values of zᵢ must be such that 
     # ∑ⱼ Sᵢⱼzⱼ ≥ 0. This defines a set of inequalities, which in turn defines a polyhedral
@@ -40,11 +40,11 @@ function compatibility_basis(F::Smith, BRS::BandRepSet;
 
     nsᴴ  = S*zsᴴ                          # Columns are Hilbert basis vectors in 𝐧-space
 
-    return SymBasis(nsᴴ, BRS, true)       # Bases of all valid symmetry vectors in 𝐧-space
+    return SymBasis(nsᴴ, brs, true)       # Bases of all valid symmetry vectors in 𝐧-space
 end
 
 """
-    nontopological_basis(F::Smith, BRS::BandRepSet; algorithm, verbose)
+    nontopological_basis(F::Smith, brs::BandRepSet; algorithm, verbose)
     nontopological_basis(sgnum::Integer, D::Integer=3; kwargs...)
 
 Computes the "nontopological" Hilbert basis associated with a Smith normal form `F` of the
@@ -56,7 +56,7 @@ If the method is called with `sgnum::Integer`, the underlying `BandRepSet` is al
 
 For possible keyword arguments, see `compatibility_basis(..)`.
 """
-function nontopological_basis(F::Smith, BRS::BandRepSet;
+function nontopological_basis(F::Smith, brs::BandRepSet;
                               algorithm::String="DualMode", verbose::Bool=false)
     # To find the nontopological basis we build a cone subject to the inequalities 
     # (SΛy)ᵢ ≥ 0 with yᵢ ∈ ℤ, which automatically excludes topological cases (since they
@@ -73,7 +73,7 @@ function nontopological_basis(F::Smith, BRS::BandRepSet;
 
     nsᴴ_nontopo = SΛ*ysᴴ_nontopo                      # Hilbert basis vectors in 𝐧-space
 
-    return SymBasis(nsᴴ_nontopo, BRS, false) # Bases of nontopological states in 𝐧-space
+    return SymBasis(nsᴴ_nontopo, brs, false) # Bases of nontopological states in 𝐧-space
 end
 
 # Convenience accessors from a space group number and dimensionality alone
@@ -82,11 +82,11 @@ for f in (:compatibility_basis, :nontopological_basis)
         function $f(sgnum::Integer, D::Integer=3; 
                     algorithm::String="DualMode", verbose::Bool=false,
                     spinful::Bool=false, timereversal::Bool=true, allpaths::Bool=false)
-            BRS = bandreps(sgnum, D; allpaths=allpaths, spinful=spinful, timereversal=timereversal)
-            B   = matrix(BRS; includedim=true) # Matrix with columns of EBRs.
-            F   = smith(B)                     # Smith normal decomposition of B
+            brs = bandreps(sgnum, D; allpaths=allpaths, spinful=spinful, timereversal=timereversal)
+            B   = stack(brs) # matrix with columns of EBRs.
+            F   = smith(B)   # Smith normal decomposition of B
 
-            return $f(F, BRS, algorithm=algorithm, verbose=verbose), BRS
+            return $f(F, brs, algorithm=algorithm, verbose=verbose), brs
         end
     end
 end
@@ -97,8 +97,8 @@ $(TYPEDSIGNATURES)
 Compute the trivial and fragile indices of a _nontopological_ `SymBasis`, `sb_nontopo`, by 
 determining whether or not each has a positive-coefficient expansion in elementary band
 representations (EBRs).
-The EBRs are given either through a `BRS::BandRepSet` or through its matrix representation
-`B = matrix(BRS; includedim = true)`.
+The EBRs are given either through a `brs::BandRepSet` or through its matrix representation
+`B = stack(brs)`.
 
 Note that both `sb_nontopo` and `B` must reference the same output space: in other words, if
 the `sb_nontopo` includes a filling element, `includedim` must be set to `true` for `B`; 
@@ -144,15 +144,14 @@ function split_fragiletrivial(sb_nontopo::SymBasis, B::AbstractMatrix)
     end
     return split_fragiletrivial(parent(sb_nontopo), B)
 end
-function split_fragiletrivial(sb_nontopo::SymBasis, BRS::BandRepSet)
+function split_fragiletrivial(sb_nontopo::SymBasis, brs::BandRepSet)
     Nirr, Nrows = length(irreplabels(sb_nontopo)), length(first(sb_nontopo))
-    includedim = (Nrows == Nirr+1) ? true : false
 
     if !includedim && Nrows ≠ Nirr
         error(DimensionMismatch("internal dimensions of `sb_nontopo` are inconsistent"))
     end
 
-    return split_fragiletrivial(sb_nontopo, matrix(BRS; includedim=includedim))
+    return split_fragiletrivial(sb_nontopo, stack(brs))
 end
 
 # Footnotes:
