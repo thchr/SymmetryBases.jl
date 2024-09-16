@@ -100,10 +100,6 @@ representations (EBRs).
 The EBRs are given either through a `brs::BandRepSet` or through its matrix representation
 `B = stack(brs)`.
 
-Note that both `sb_nontopo` and `B` must reference the same output space: in other words, if
-the `sb_nontopo` includes a filling element, `includedim` must be set to `true` for `B`; 
-otherwise `false`.
-
 Returns trivial indices `trivial` and fragile indices `fragile` (indexing into the basis
 vectors in `sb_nontopo`) as a named tuple with the corresponding field names.
 """
@@ -145,12 +141,6 @@ function split_fragiletrivial(sb_nontopo::SymBasis, B::AbstractMatrix)
     return split_fragiletrivial(parent(sb_nontopo), B)
 end
 function split_fragiletrivial(sb_nontopo::SymBasis, brs::BandRepSet)
-    Nirr, Nrows = length(irreplabels(sb_nontopo)), length(first(sb_nontopo))
-
-    if !includedim && Nrows ≠ Nirr
-        error(DimensionMismatch("internal dimensions of `sb_nontopo` are inconsistent"))
-    end
-
     return split_fragiletrivial(sb_nontopo, stack(brs))
 end
 

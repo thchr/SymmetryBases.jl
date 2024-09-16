@@ -411,7 +411,7 @@ function decompose(
     return c′
 end
 function decompose(n::AbstractVector{<:Integer}, brs::BandRepSet; kws...)
-    B = stack(brs; includedim=)
+    B = stack(brs)
     if !includes_connectivity(n, brs)
         B = B[1:end-1, :]
     end
