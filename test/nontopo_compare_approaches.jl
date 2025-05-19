@@ -17,9 +17,9 @@ for sgnum in 1:230
     # compute Hilbert basis for {AI+F} with conditions imposed either directly via EBR basis
     # or via a Smith normal decomposition
     t′ = @elapsed begin                             # directly via EBR basis
-        C′ = SymmetryBases.PyNormaliz.Cone(inequalities = A)
+        C′ = SymmetryBases.PyNormaliz.Cone(inequalities = eachrow(A))
         C′.Compute("HilbertBasis", "DualMode")
-        c′ = C′.HilbertBasis()'
+        c′ = stack(pyconvert(Vector{Vector{Int}}, C′.HilbertBasis()))
         nontopo_sb′ = collect(eachcol(A*c′))
     end
     print(" (", round(t′, digits=1), " s vs. ")
@@ -31,9 +31,9 @@ for sgnum in 1:230
         Λ = @view F.SNF[1:dᵇˢ]
         SΛ = S .* Λ'
         
-        C = SymmetryBases.PyNormaliz.Cone(inequalities = SΛ)
+        C = SymmetryBases.PyNormaliz.Cone(inequalities = eachrow(SΛ))
         C.Compute("HilbertBasis", "DualMode")
-        c = C.HilbertBasis()'
+        c = stack(pyconvert(Vector{Vector{Int}}, C.HilbertBasis()))
 
         nontopo_sb = collect(eachcol(SΛ*c))
     end

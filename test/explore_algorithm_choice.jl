@@ -1,4 +1,4 @@
-using Crystalline, PyCall
+using Crystalline, PythonCall
 import Base: OneTo
 if !isdefined(Main, :PyNormaliz)
     const PyNormaliz = pyimport("PyNormaliz")
@@ -23,11 +23,11 @@ for sgnum in 1:230
     end
 
     S = F.S[:,OneTo(dᵇˢ)]                 # These are all the nontrivial conditions on zⱼ 
-    C = PyNormaliz.Cone(inequalities = S)
+    C = PyNormaliz.Cone(inequalities = eachrow(S))
     default_time = @elapsed C.HilbertBasis()
 
     for (i, mode) in enumerate(algos)
-        C′ = PyNormaliz.Cone(inequalities = S)
+        C′ = PyNormaliz.Cone(inequalities = eachrow(S))
         times[i] = @elapsed C′.Compute("HilbertBasis", mode)
     end
     cumtimes = cumtimes .+ times
