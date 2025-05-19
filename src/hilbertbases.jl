@@ -5,7 +5,7 @@
 # elements Sᵢⱼ∈ℤ. To make nᵢ integer, we thus require zᵢ∈ℤ.
 
 """
-    compatibility_basis(F::Smith, brs::BandRepSet; algorithm, verbose)
+    compatibility_basis([F::Smith,] brs::Union{BandRepSet, Collection{<:NewBandRep}}; kws...)
     compatibility_basis(sgnum::Integer, D::Integer=3; kwargs...)
 
 Computes the Hilbert basis associated with a Smith normal form `F` of the EBR matrix or from
@@ -46,7 +46,7 @@ function compatibility_basis(F::Smith, brs::BandRepSet;
 end
 
 """
-    nontopological_basis(F::Smith, brs::BandRepSet; algorithm, verbose)
+    nontopological_basis([F::Smith,] brs::Union{BandRepSet, Collection{<:NewBandRep}}; kws...)
     nontopological_basis(sgnum::Integer, D::Integer=3; kwargs...)
 
 Computes the "nontopological" Hilbert basis associated with a Smith normal form `F` of the
@@ -91,6 +91,16 @@ for f in (:compatibility_basis, :nontopological_basis)
             F   = smith(B)   # Smith normal decomposition of B
 
             return $f(F, brs, algorithm=algorithm, verbose=verbose), brs
+        end
+        $f(brs::BandRepSet; kws...) = $f(smith(stack(brs)), brs; kws...)
+        function $f(F::Smith, brs::Collection{NewBandRep{D}}; kws...) where D
+            _brs = convert(BandRepSet, brs)
+            return $f(F, _brs; kws...)
+        end
+        function $f(brs::Collection{NewBandRep{D}}; kws...) where D
+            F = smith(stack(brs))
+            _brs = convert(BandRepSet, brs)
+            return $f(F, _brs; kws...)
         end
     end
 end
@@ -144,7 +154,10 @@ function split_fragiletrivial(sb_nontopo::SymBasis, B::AbstractMatrix)
     end
     return split_fragiletrivial(parent(sb_nontopo), B)
 end
-function split_fragiletrivial(sb_nontopo::SymBasis, brs::BandRepSet)
+function split_fragiletrivial(
+    sb_nontopo::SymBasis, 
+    brs::Union{Collection{<:NewBandRep}, BandRepSet}
+)
     return split_fragiletrivial(sb_nontopo, stack(brs))
 end
 
