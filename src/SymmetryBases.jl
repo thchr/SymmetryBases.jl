@@ -30,16 +30,14 @@ end
 
 include("types.jl")
 export SymBasis, fillings
-export TopologyKind, TRIVIAL, NONTRIVIAL, FRAGILE
 
 include("show.jl")
 
 include("hilbertbases.jl")
 export compatibility_basis, nontopological_basis, split_fragiletrivial
 
-include("symvec.jl")
-export has_posint_expansion, calc_detailed_topology, calc_topology,
-       isbandstruct, indicators, decompose
+include("tqc_analysis.jl")
+export has_posint_expansion, calc_detailed_topology, decompose
        
 # ---------------------------------------------------------------------------------------- #
 

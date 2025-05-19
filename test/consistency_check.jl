@@ -40,7 +40,7 @@ function _test_hilbert_basis_consistency(brs::BandRepSet, F::Smith,
     nsᴴ_topo_subset    = @view nsᴴ[:, topo_idxs_subset]
 
     # If classification is Z₁, nsᴴ and nsᴴ_nontopo must be equal
-    if classification(brs) == "Z₁"
+    if indicator_group_as_string(brs) == "Z₁"
         @test Set(eachcol(nsᴴ)) == Set(eachcol(nsᴴ_nontopo))
         println("✓ (trivially)")
     else 

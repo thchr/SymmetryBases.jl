@@ -17,7 +17,7 @@ for sgnum in 1:MAX_SGNUM[3]
     Nⁱʳʳ, Nᴱᴮᴿ = size(B)
 
     # Print some simple stuff early on, to indicate that a calculation is running
-    println("\nSG", sgnum, ": ", classification(brs), 
+    println("\nSG", sgnum, ": ", indicator_group_as_string(brs), 
             " (", dᵇˢ, " \"band structure dimensions\"; ", Nⁱʳʳ, " inequalities)")
 
     # Compatibility Hilbert basis  

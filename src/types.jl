@@ -34,11 +34,3 @@ fillings(sb::SymBasis)    = [nᴴ[end] for nᴴ in sb.symvecs]
 size(sb::SymBasis) = (length(parent(sb)),)
 getindex(sb::SymBasis, keys...) = parent(sb)[keys...]
 IndexStyle(::SymBasis) = IndexLinear()
-
-# ---------------------------------------------------------------------------------------- #
-
-@enum TopologyKind begin
-    TRIVIAL    = 0
-    NONTRIVIAL = 1
-    FRAGILE    = 2
-end
