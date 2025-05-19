@@ -1,7 +1,7 @@
 module SymmetryBases
 
 using Crystalline
-using PyCall
+using PythonCall: pynew, pyimport, pycopy!, pyconvert
 using PrettyTables
 using JuMP
 using GLPK     # for `has_posint_expansion`
@@ -16,12 +16,11 @@ import Crystalline: num, irreplabels, klabels, isspinful
 
 # ---------------------------------------------------------------------------------------- #
 
-const PyNormaliz = PyNULL()
+const PyNormaliz = pynew()
 function __init__() 
     # import the PyNormaliz library
-    # https://github.com/JuliaPy/PyCall.jl#using-pycall-from-julia-modules
     try
-        copy!(PyNormaliz, pyimport("PyNormaliz"))
+        pycopy!(PyNormaliz, pyimport("PyNormaliz"))
     catch
         @warn "PyNormaliz could not be imported: related functionality of SymmetryBases.jl is nonfunctional"
     end

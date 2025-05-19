@@ -31,13 +31,15 @@ function compatibility_basis(F::Smith, brs::BandRepSet;
     # ∑ⱼ Sᵢⱼzⱼ ≥ 0. This defines a set of inequalities, which in turn defines a polyhedral
     # integer cone. This is where (Py)Normaliz comes in.
     dᵇˢ = count(!iszero, F.SNF)           # "Dimensionality" of band structure
-    S = @view F.S[:,OneTo(dᵇˢ)]           # All the nontrivial conditions on zⱼ
+    S = @view F.S[:, 1:dᵇˢ]               # All the nontrivial conditions on zⱼ
 
-    C = PyNormaliz.Cone(inequalities = S) # Construct cone consistent with Sᵢⱼzⱼ ≥ 0
-    verbose && C.setVerbose(true)         # Whether to print progress info
+    C = PyNormaliz.Cone(inequalities = eachrow(S)) # Cone consistent w/ Sᵢⱼzⱼ ≥ 0
+    verbose && C.SetVerbose(true)         # Whether to print progress info
     C.Compute("HilbertBasis", algorithm)  # Compute¹ the Hilbert basis
-    zsᴴ  = transpose(C.HilbertBasis())    # Columns are Hilbert basis vectors in 𝐳-space
-
+    zsᴴ_py = C.HilbertBasis()             # Python list of lists (each element a Hilbert
+                                          # basis vectors in 𝐳-space)
+    zsᴴ_vs = pyconvert(Vector{Vector{Int}}, zsᴴ_py) # Convert to Julia vector of vectors
+    zsᴴ = stack(zsᴴ_vs)                   # Columns are now Hilbert basis vectors (𝐳-space)
     nsᴴ  = S*zsᴴ                          # Columns are Hilbert basis vectors in 𝐧-space
 
     return SymBasis(nsᴴ, brs, true)       # Bases of all valid symmetry vectors in 𝐧-space
@@ -64,14 +66,16 @@ function nontopological_basis(F::Smith, brs::BandRepSet;
     dᵇˢ = count(!iszero, F.SNF)  # "Dimensionality" of band structure
     S = @view F.S[:,OneTo(dᵇˢ)]  # All the nontrivial conditions on zⱼ
     Λ = @view F.SNF[OneTo(dᵇˢ)]  # Nonzero invariant factors of Smith normal decomposition
-    SΛ = S .* Λ' # Equivalent to S*diagm(dᵇˢ, dᵇˢ, Λ); all the nontrivial conditions on yᵢ
+    SΛ = S .* Λ' # Equiv. to S*diagm(dᵇˢ, dᵇˢ, Λ); all nontrivial conditions on yᵢ
     
-    C_nontopo = PyNormaliz.Cone(inequalities = SΛ)    # Cone consistent with SᵢⱼΛⱼyⱼ ≥ 0
-    verbose && C_nontopo.setVerbose(true)             # Whether to print progress info
-    C_nontopo.Compute("HilbertBasis", algorithm)      # Compute¹ the Hilbert basis
-    ysᴴ_nontopo = transpose(C_nontopo.HilbertBasis()) # Hilbert basis vectors in 𝐲-space
+    C_nontopo = PyNormaliz.Cone(inequalities = eachrow(SΛ)) # Cone consistent w/ SᵢⱼΛⱼyⱼ ≥ 0
+    verbose && C_nontopo.SetVerbose(true)          # Whether to print progress info
+    C_nontopo.Compute("HilbertBasis", algorithm)   # Compute¹ the Hilbert basis
+    ysᴴ_nontopo_py = C_nontopo.HilbertBasis()      # Hilbert basis vectors in 𝐲-space
+    ysᴴ_nontopo_vs = pyconvert(Vector{Vector{Int}}, ysᴴ_nontopo_py) # Convert to Julia
+    ysᴴ_nontopo = stack(ysᴴ_nontopo_vs)            # Hilbert basis vectors as cols (𝐲-space)
 
-    nsᴴ_nontopo = SΛ*ysᴴ_nontopo                      # Hilbert basis vectors in 𝐧-space
+    nsᴴ_nontopo = SΛ*ysᴴ_nontopo                   # Hilbert basis vectors in 𝐧-space
 
     return SymBasis(nsᴴ_nontopo, brs, false) # Bases of nontopological states in 𝐧-space
 end
