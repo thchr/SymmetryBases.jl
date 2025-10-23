@@ -1,3 +1,4 @@
 
-[pip.deps]
+[deps]
 pynormaliz = ""
+python = "3.11.*" # pynormaliz does not yet support versions 3.12 and up
