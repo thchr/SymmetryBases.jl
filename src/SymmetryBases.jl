@@ -23,6 +23,16 @@ function __init__()
         pycopy!(PyNormaliz, pyimport("PyNormaliz"))
     catch
         @warn "PyNormaliz could not be imported: related functionality of SymmetryBases.jl is nonfunctional"
+        return
+    end
+    # Normaliz's algorithms are OpenMP-parallel, but run on a single thread wherever
+    # `OMP_NUM_THREADS` is pinned to 1 — as cluster environments commonly do. Hand it the
+    # thread count this Julia session was started with, so a Hilbert-basis computation uses
+    # the cores the session actually holds
+    try
+        PyNormaliz.NmzSetNumberOfNormalizThreads(Threads.nthreads())
+    catch
+        @warn "could not set Normaliz's thread count: Normaliz may run single-threaded"
     end
 end
 
