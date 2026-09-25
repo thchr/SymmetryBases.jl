@@ -1,3 +1,10 @@
+# A sweep of the compatibility *and* nontopological Hilbert bases over every space group,
+# checking the consistency of the two against each other.
+#
+# This is not part of `runtests.jl`: the nontopological basis does not terminate in any
+# reasonable time for a handful of space groups (see the footnotes in `hilbertbases.jl`), so
+# the sweep cannot run to completion unattended. Run it manually, and interrupt at will.
+
 using Crystalline
 using SymmetryBases
 using Test
