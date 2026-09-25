@@ -5,7 +5,7 @@ function show(io::IO, ::MIME"text/plain", sb::SymBasis)
     println(io, "SymBasis (#", num(sb), "): ",
                 length(sb), " Hilbert vectors, sampling ",
                 Nⁱʳʳ, " LGIrreps ",
-                "(spin-", isspinful(sb) ? "½" : "1", " ",
+                "(", isspinful(sb) ? "spinful" : "spinless", " ",
                 sb.timereversal ? "w/" : "w/o", " TR):")
 
     k_idx = (i) -> findfirst(==(klabel(irreplabels(sb)[i])), klabels(sb)) # highlighters

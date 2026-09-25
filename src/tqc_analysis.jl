@@ -24,7 +24,7 @@ end
 
 """
     calc_detailed_topology(n, B::Matrix{<:Integer}, [F::Smith=smith(B)]; allow_negative)
-    calc_detailed_topology(n, brs::BandRepSet; allow_negative)
+    calc_detailed_topology(n, brs::Collection{<:BandRep}; allow_negative)
     calc_detailed_topology(n, sgnum::Integer, [D::Integer=3]; kwargs...) 
 
 Return whether a integer symmetry vector `n` is topologically trivial, nontrivial, or
@@ -33,7 +33,8 @@ value from the Enum [`TopologyKind`](@ref) (`TRIVIAL`, `NONTRIVIAL`, or `FRAGILE
 
 ## Implementation
 The Smith normal decomposition `F` of the EBR matrix `B` (or, equivalently, a provided
-`BandRepSet`) is used to first test whether `n` is nontrivial or not stably nontrivial
+band representations) is used to first test whether `n` is nontrivial or not stably
+nontrivial
 (i.e. trivial or fragile) using [`calc_topology`](@ref).
 In the latter case, we resolve triviality vs. fragility by subsequently checking whether
 `n` has a non-negative expansion in the EBR basis using [`has_posint_expansion`](@ref).
@@ -74,7 +75,7 @@ end
 
 function calc_detailed_topology(
     n::AbstractVector{<:Integer},
-    brs::Union{Collection{<:NewBandRep}, BandRepSet};
+    brs::Collection{<:BandRep};
     kws...
 )
     B = stack(brs)
@@ -89,7 +90,7 @@ function calc_detailed_topology(
             n::AbstractVector{<:Integer},
             sgnum::Integer,
             D::Integer=3;
-            spinful::Bool=false,
+            spinful = Val(false),
             timereversal::Bool=true,
             allpaths::Bool=false,
             kws...)
@@ -181,7 +182,7 @@ function decompose(
 end
 function decompose(
     n::AbstractVector{<:Integer},
-    brs::Union{Collection{<:NewBandRep}, BandRepSet};
+    brs::Collection{<:BandRep};
     kws...
 )
     B = stack(brs)
