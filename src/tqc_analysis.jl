@@ -89,13 +89,13 @@ end
 function calc_detailed_topology(
             n::AbstractVector{<:Integer},
             sgnum::Integer,
-            D::Integer=3;
+            Dᵛ_or_D::Union{Val, Integer}=Val(3);
             spinful = Val(false),
             timereversal::Bool=true,
             allpaths::Bool=false,
             kws...)
 
-    brs = bandreps(sgnum, D; spinful, timereversal, allpaths)
+    brs = bandreps(sgnum, Dᵛ_or_D; spinful, timereversal, allpaths)
     return calc_detailed_topology(n, brs; kws...)
 end
 
@@ -125,8 +125,8 @@ error is thrown. This behavior can be controlled by two boolean keyword argument
 - `allow_incompatible` (`false`): if `true`, disables the compatibility check entirely.
 - `allow_negative` (`false`): if `true`, allows negative symmetry content, but maintain
   requirement that `n` respects the compatibilty relations in an algebraic sense.
-- `seek_minimal_norm` (`true`): if `true`, additionally solves an integer quadratic problem
-  to explicitly minimize the norm of the decomposition vector. Useful for ensuring a
+- `seek_minimal_norm` (`false`): if `true`, additionally solves an integer quadratic problem
+  to explicitly minimize the norm of the decomposition vector. Useful for seeking a
   maximally simple expansion. Typically, however, this is achieved even with
   `seek_minimal_norm = false`.
   Setting to `false` will improve performance, usually substantially.
@@ -137,7 +137,7 @@ function decompose(
             F::Smith=smith(B);
             allow_incompatible::Bool=false,
             allow_negative::Bool=false,
-            seek_minimal_norm::Bool=true)
+            seek_minimal_norm::Bool=false)
     
     c::Union{Vector{Float64}, Nothing} = nothing # placeholder, for branching
     topo = calc_topology(n, F; allow_incompatible, allow_negative) # checks `iscompatible` as well
@@ -193,6 +193,14 @@ function decompose(
 end
 
 function _minimize_decomposition_norm(c, B, Bᵍ)
+    # TODO/FIXME: This is really not working all that well - it used to, when we initially
+    #   implemented it, but now it seems to be struggling to find a minimal-norm solution,
+    #   e.g., taking a long time and additionally warning that "integral solutions may be
+    #   repeated" on most calls. I suspect it is related to issue 457 in Pajarito.jl
+    #   (https://github.com/jump-dev/Pajarito.jl/issues/457), but was not able to find a fix
+    #   by simply fiddling with the tolerances, as suggested in that issue. For now, we
+    #   just turned the `seek_minimal_norm` keyword off by default.
+
     # all solutions have the form `c + N*y` where y is an integer vector
     N = round.(Int, I-Bᵍ*B) # null-space matrix
     N ≈ I-Bᵍ*B || error("failed to compute integer-valued null-space matrix")
@@ -209,7 +217,8 @@ function _minimize_decomposition_norm(c, B, Bᵍ)
                 HiGHS.Optimizer,
                 MOI.Silent() => true,
                 "mip_feasibility_tolerance" => 1e-8,
-                "mip_rel_gap" => 1e-6),
+                "mip_rel_gap" => 1e-6,
+            ),
             "conic_solver" => optimizer_with_attributes(
                 Hypatia.Optimizer,
                 MOI.Silent() => true),

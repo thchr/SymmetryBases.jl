@@ -16,9 +16,9 @@ struct SymBasis{D} <: AbstractVector{Vector{Int}}
 end
 function SymBasis(
     nsᴴ::AbstractMatrix{Int},
-    brs::Collection{<:BandRep},
+    brs::Collection{<:BandRep{D}},
     compatbasis::Bool=true
-)
+) where {D}
     irlabs, klabs = irreplabels(brs), klabels(brs)
     kv2ir_idxs = [(f = irlab -> klabel(irlab)==klab;
                    findfirst(f, irlabs):findlast(f, irlabs)) for klab in klabs]
@@ -26,9 +26,11 @@ function SymBasis(
     # NB: materialize the columns, rather than `collect(eachcol(nsᴴ))`: the latter gives a
     #     vector of views, which does not match the field type and keeps `nsᴴ` alive
     symvecs = [Vector{Int}(nᴴ) for nᴴ in eachcol(nsᴴ)]
-    return SymBasis(symvecs,
-                    irlabs, klabs, position.(littlegroups(brs)), kv2ir_idxs,
-                    num(br), isspinful(br), br.timereversal, compatbasis)
+    sb = SymBasis{D}(
+        symvecs, irlabs, klabs, position.(littlegroups(brs)), kv2ir_idxs,
+        num(br), isspinful(br), br.timereversal, compatbasis
+    )
+    return sb
 end
 
 # accessors
