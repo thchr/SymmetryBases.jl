@@ -3,23 +3,34 @@
     
 with fields: $(TYPEDFIELDS)
 """
-struct SymBasis <: AbstractVector{Vector{Int}}
+struct SymBasis{D} <: AbstractVector{Vector{Int}}
     symvecs::Vector{Vector{Int}}
     irlabs::Vector{String}
     klabs::Vector{String}
-    kvs::Vector{<:KVec} # TODO: make parameteric
+    kvs::Vector{KVec{D}}
     kv2ir_idxs::Vector{UnitRange{Int}} # pick k-point; find assoc. ir indices
     sgnum::Int
     spinful::Bool
     timereversal::Bool
     compatbasis::Bool
 end
-function SymBasis(nsᴴ::AbstractMatrix{Int}, brs::BandRepSet, compatbasis::Bool=true)
-    kv2ir_idxs = [(f = irlab -> klabel(irlab)==klab; 
-                   findfirst(f, brs.irlabs):findlast(f, brs.irlabs)) for klab in brs.klabs]
-    return SymBasis(collect(eachcol(nsᴴ)),
-                    brs.irlabs, brs.klabs, brs.kvs, kv2ir_idxs, 
-                    brs.sgnum, brs.spinful, brs.timereversal, compatbasis)
+function SymBasis(
+    nsᴴ::AbstractMatrix{Int},
+    brs::Collection{<:BandRep{D}},
+    compatbasis::Bool=true
+) where {D}
+    irlabs, klabs = irreplabels(brs), klabels(brs)
+    kv2ir_idxs = [(f = irlab -> klabel(irlab)==klab;
+                   findfirst(f, irlabs):findlast(f, irlabs)) for klab in klabs]
+    br = first(brs)
+    # NB: materialize the columns, rather than `collect(eachcol(nsᴴ))`: the latter gives a
+    #     vector of views, which does not match the field type and keeps `nsᴴ` alive
+    symvecs = [Vector{Int}(nᴴ) for nᴴ in eachcol(nsᴴ)]
+    sb = SymBasis{D}(
+        symvecs, irlabs, klabs, position.(littlegroups(brs)), kv2ir_idxs,
+        num(br), isspinful(br), br.timereversal, compatbasis
+    )
+    return sb
 end
 
 # accessors

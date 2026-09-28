@@ -4,14 +4,14 @@ using Crystalline
 using JuMP, GLPK
 
 """
-    _test_hilbert_basis_consistency(brs::BandRepSet, F::Smith,
+    _test_hilbert_basis_consistency(brs::Collection{<:BandRep}, F::Smith,
                     nsᴴ::AbstractMatrix, nsᴴ_nontopo::AbstractMatrix)
 
 Test that the obtained "non-topological" basis indeed obey some of the conditions that we
 know they must. Prints a checkmark (✓) if succesful; throws `Test.FallbackTestSetException`
 otherwise. Returns `nothing`.
 """
-function _test_hilbert_basis_consistency(brs::BandRepSet, F::Smith,
+function _test_hilbert_basis_consistency(brs::Collection{<:BandRep}, F::Smith,
                 nsᴴ::AbstractMatrix, nsᴴ_nontopo::AbstractMatrix)
 
     print("   ... checking consistency of non-topological basis: ")

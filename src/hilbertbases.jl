@@ -5,7 +5,7 @@
 # elements Sᵢⱼ∈ℤ. To make nᵢ integer, we thus require zᵢ∈ℤ.
 
 """
-    compatibility_basis([F::Smith,] brs::Union{BandRepSet, Collection{<:NewBandRep}}; kws...)
+    compatibility_basis([F::Smith,] brs::Collection{<:BandRep}; kws...)
     compatibility_basis(sgnum::Integer, D::Integer=3; kwargs...)
 
 Computes the Hilbert basis associated with a Smith normal form `F` of the EBR matrix or from
@@ -13,19 +13,21 @@ a space group number `sgnum`, which respects all compatibility relations, return
 `SymBasis` structure. The returned basis is a non-negative integer coefficient basis
 for all possible band structures {BS}.
 
-If the method is called with `sgnum::Integer`, the underlying `BandRepSet` is also returned.
+If the method is called with `sgnum::Integer`, the underlying band representations are
+also returned.
 
 ## Keyword arguments
 
 - `algorithm::String`: controls the algorithm used by Normaliz to compute the Hilbert
 basis. Choices are `"DualMode"` (default) and `"PrimalMode"`
-- `spinful::Bool`: Use single- (`false`, default) or double-valued (`true`) irreps.
+- `spinful`: Use single- (`Val(false)`, default) or double-valued (`Val(true)`) irreps.
+A plain `Bool` is also accepted, but is not type-stable.
 - `timereversal::Bool`: Assume presence (`true`, default) or absence (`false`) of
 time-reversal symmetry.
 - `verbose::Bool`: whether to print progress info during the Normaliz computation
 (`false`, default).
 """
-function compatibility_basis(F::Smith, brs::BandRepSet; 
+function compatibility_basis(F::Smith, brs::Collection{<:BandRep};
                              algorithm::String="DualMode", verbose::Bool=false)
     # To restrict nᵢ to only positive integers, i.e. ℕ, the values of zᵢ must be such that 
     # ∑ⱼ Sᵢⱼzⱼ ≥ 0. This defines a set of inequalities, which in turn defines a polyhedral
@@ -46,7 +48,7 @@ function compatibility_basis(F::Smith, brs::BandRepSet;
 end
 
 """
-    nontopological_basis([F::Smith,] brs::Union{BandRepSet, Collection{<:NewBandRep}}; kws...)
+    nontopological_basis([F::Smith,] brs::Collection{<:BandRep}; kws...)
     nontopological_basis(sgnum::Integer, D::Integer=3; kwargs...)
 
 Computes the "nontopological" Hilbert basis associated with a Smith normal form `F` of the
@@ -54,11 +56,12 @@ EBR matrix or from a space group number `sgnum`, returning a `SymBasis` structur
 The returned basis is a non-negative integer coefficient basis for all non-topological band
 structures {AI+F} (i.e. both trivial and fragile-topological).
 
-If the method is called with `sgnum::Integer`, the underlying `BandRepSet` is also returned.
+If the method is called with `sgnum::Integer`, the underlying band representations are
+also returned.
 
 For possible keyword arguments, see `compatibility_basis(..)`.
 """
-function nontopological_basis(F::Smith, brs::BandRepSet;
+function nontopological_basis(F::Smith, brs::Collection{<:BandRep};
                               algorithm::String="DualMode", verbose::Bool=false)
     # To find the nontopological basis we build a cone subject to the inequalities 
     # (SΛy)ᵢ ≥ 0 with yᵢ ∈ ℤ, which automatically excludes topological cases (since they
@@ -83,25 +86,13 @@ end
 # Convenience accessors from a space group number and dimensionality alone
 for f in (:compatibility_basis, :nontopological_basis)
     @eval begin
-        function $f(sgnum::Integer, D::Integer=3; 
+        function $f(sgnum::Integer, D::Integer=3;
                     algorithm::String="DualMode", verbose::Bool=false,
-                    spinful::Bool=false, timereversal::Bool=true, allpaths::Bool=false)
-            brs = bandreps(sgnum, D; allpaths=allpaths, spinful=spinful, timereversal=timereversal)
-            B   = stack(brs) # matrix with columns of EBRs.
-            F   = smith(B)   # Smith normal decomposition of B
-
-            return $f(F, brs, algorithm=algorithm, verbose=verbose), brs
+                    spinful = Val(false), timereversal::Bool=true, allpaths::Bool=false)
+            brs = bandreps(sgnum, D; allpaths, spinful, timereversal)
+            return $f(brs; algorithm, verbose), brs
         end
-        $f(brs::BandRepSet; kws...) = $f(smith(stack(brs)), brs; kws...)
-        function $f(F::Smith, brs::Collection{NewBandRep{D}}; kws...) where D
-            _brs = convert(BandRepSet, brs)
-            return $f(F, _brs; kws...)
-        end
-        function $f(brs::Collection{NewBandRep{D}}; kws...) where D
-            F = smith(stack(brs))
-            _brs = convert(BandRepSet, brs)
-            return $f(F, _brs; kws...)
-        end
+        $f(brs::Collection{<:BandRep}; kws...) = $f(smith(stack(brs)), brs; kws...)
     end
 end
 
@@ -111,8 +102,8 @@ $(TYPEDSIGNATURES)
 Compute the trivial and fragile indices of a _nontopological_ `SymBasis`, `sb_nontopo`, by 
 determining whether or not each has a positive-coefficient expansion in elementary band
 representations (EBRs).
-The EBRs are given either through a `brs::BandRepSet` or through its matrix representation
-`B = stack(brs)`.
+The EBRs are given either through a `brs::Collection{<:BandRep}` or through its matrix
+representation `B = stack(brs)`.
 
 Returns trivial indices `trivial` and fragile indices `fragile` (indexing into the basis
 vectors in `sb_nontopo`) as a named tuple with the corresponding field names.
@@ -154,10 +145,7 @@ function split_fragiletrivial(sb_nontopo::SymBasis, B::AbstractMatrix)
     end
     return split_fragiletrivial(parent(sb_nontopo), B)
 end
-function split_fragiletrivial(
-    sb_nontopo::SymBasis, 
-    brs::Union{Collection{<:NewBandRep}, BandRepSet}
-)
+function split_fragiletrivial(sb_nontopo::SymBasis, brs::Collection{<:BandRep})
     return split_fragiletrivial(sb_nontopo, stack(brs))
 end
 
