@@ -13,7 +13,7 @@ using JuMP, GLPK
 has_tr = true
 for sgnum in 1:230
     println("SG$sgnum")
-    brs = bandreps(sgnum, 3, timereversal=has_tr, allpaths=true)
+    brs = bandreps(sgnum, Val(3); timereversal=has_tr, allpaths=true)
     B = stack(brs)
     Nᴱᴮᴿ = size(B, 2)
     for (idx, b) in enumerate(collect(eachcol(B)))

@@ -10,7 +10,7 @@ times = zeros(2)
 for sgnum in 1:230
     global cumtimes, times, algos
     print("SG", sgnum, ": ")
-    brs = bandreps(sgnum, spinful=false, timereversal=true)
+    brs = bandreps(sgnum; spinful=false, timereversal=true)
     
     B = stack(brs) # matrix with columns of EBRs.
 

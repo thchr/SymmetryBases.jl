@@ -6,7 +6,7 @@
 
 """
     compatibility_basis([F::Smith,] brs::Collection{<:BandRep}; kws...)
-    compatibility_basis(sgnum::Integer, D::Integer=3; kwargs...)
+    compatibility_basis(sgnum::Integer, Dᵛ_or_D::Union{Val, Integer}=Val(3); kwargs...)
 
 Computes the Hilbert basis associated with a Smith normal form `F` of the EBR matrix or from
 a space group number `sgnum`, which respects all compatibility relations, returning a
@@ -49,7 +49,7 @@ end
 
 """
     nontopological_basis([F::Smith,] brs::Collection{<:BandRep}; kws...)
-    nontopological_basis(sgnum::Integer, D::Integer=3; kwargs...)
+    nontopological_basis(sgnum::Integer, Dᵛ_or_D::Union{Val, Integer}=Val(3); kwargs...)
 
 Computes the "nontopological" Hilbert basis associated with a Smith normal form `F` of the
 EBR matrix or from a space group number `sgnum`, returning a `SymBasis` structure. 
@@ -86,10 +86,10 @@ end
 # Convenience accessors from a space group number and dimensionality alone
 for f in (:compatibility_basis, :nontopological_basis)
     @eval begin
-        function $f(sgnum::Integer, D::Integer=3;
+        function $f(sgnum::Integer, Dᵛ_or_D::Union{Val, Integer}=Val(3);
                     algorithm::String="DualMode", verbose::Bool=false,
                     spinful = Val(false), timereversal::Bool=true, allpaths::Bool=false)
-            brs = bandreps(sgnum, D; allpaths, spinful, timereversal)
+            brs = bandreps(sgnum, Dᵛ_or_D; allpaths, spinful, timereversal)
             return $f(brs; algorithm, verbose), brs
         end
         $f(brs::Collection{<:BandRep}; kws...) = $f(smith(stack(brs)), brs; kws...)

@@ -12,7 +12,7 @@ verbose      = true
 for sgnum in sgnums
     println("SG ", sgnum)
     # prep-work to get Hilbert bases etc
-    brs  = bandreps(sgnum, spinful=false, timereversal=timereversal)
+    brs  = bandreps(sgnum; spinful=false, timereversal=timereversal)
     B    = stack(brs) # matrix with columns of EBRs
     isℤ₁ = indicator_group_as_string(brs) == "Z₁"
     if isℤ₁

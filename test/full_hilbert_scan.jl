@@ -15,7 +15,7 @@ spinful = false
 timereversal = true
 algorithm = "DualMode" # DualMode or PrimalMode
 for sgnum in 1:MAX_SGNUM[3]
-    brs = bandreps(sgnum, spinful=spinful, timereversal=timereversal)
+    brs = bandreps(sgnum; spinful=spinful, timereversal=timereversal)
     
     B = stack(brs) # matrix with columns of EBRs.
     
